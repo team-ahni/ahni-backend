@@ -151,6 +151,22 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ScholarshipCriteriaNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleScholarshipCriteriaNotFound(
+        ScholarshipCriteriaNotFoundException exception
+    ) {
+        return new ApiErrorResponse("SCHOLARSHIP_CRITERIA_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(ScholarshipCriteriaAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiErrorResponse handleScholarshipCriteriaAlreadyExists(
+        ScholarshipCriteriaAlreadyExistsException exception
+    ) {
+        return new ApiErrorResponse("SCHOLARSHIP_CRITERIA_ALREADY_EXISTS", exception.getMessage());
+    }
+
     @ExceptionHandler(GraduationRequirementAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiErrorResponse handleGraduationRequirementAlreadyExists(
