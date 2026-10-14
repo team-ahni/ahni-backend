@@ -22,6 +22,18 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Tag("integration")
 class OpenApiContractTest {
+    @Test
+    void lectureImportDocumentsAtomicAdminBatchAndArrayResponse() throws Exception {
+        String actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        var document = objectMapper.readTree(actual);
+        var operation = document.at("/paths/~1api~1v1~1admin~1lectures~1import/post");
+        assertTrue(operation.at("/security/0/bearerAuth").isArray());
+        for (String code : new String[]{"201", "400", "401", "403", "404", "409"})
+            assertTrue(operation.path("responses").has(code));
+        assertEquals("array", operation.at("/responses/201/content/application~1json/schema/type").asText());
+        assertEquals(200, document.at("/components/schemas/LectureImportRequest/properties/lectures/maxItems").asInt());
+    }
 
     @Test
     void yearlyCurriculumContractHasAuthenticatedYearQueryAndVersionedAdminWrites() throws Exception {

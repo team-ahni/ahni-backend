@@ -13,6 +13,24 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 @Hidden
 public class GlobalExceptionHandler {
+    @ExceptionHandler(TimetableConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiErrorResponse handleTimetableConflict(TimetableConflictException exception) {
+        return new ApiErrorResponse("TIMETABLE_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(LectureNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleLectureNotFound(LectureNotFoundException exception) {
+        return new ApiErrorResponse("LECTURE_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(TimetableNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleTimetableNotFound(TimetableNotFoundException exception) {
+        return new ApiErrorResponse("TIMETABLE_NOT_FOUND", exception.getMessage());
+    }
+
     @ExceptionHandler(CourseNotInCurriculumException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse handleCourseNotInCurriculum(CourseNotInCurriculumException exception) {

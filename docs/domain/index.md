@@ -6,6 +6,12 @@ AHNI connects student academic records to decisions about the next semester.
 - Graduation: entry-year and department-specific required courses and credit thresholds.
 - Scholarship: GPA, credit, and warning criteria.
 - Timetable: lectures, conflict detection, custom start times, alarms.
+
+시간표 기본 기능은 기존 과목에 교수·연도·학기·분반별 개설 강의와 요일별
+수업 시간을 연결합니다. 학생별 학기 시간표는 강의 등록 행의 집합이며,
+동일 강의 중복과 같은 요일의 겹치는 시간을 거부합니다. 맞닿는 시간은
+허용합니다. 등록·변경·삭제는 학생 행 잠금으로 직렬화하며 본인 데이터만
+조작합니다. 개인 시간 변경·알림은 후속 범위입니다. [시간표 API](../api/timetable.md).
 - Recommendations: prerequisite flow, graduation urgency, professor preference.
 
 When a rule is implemented, document the invariant and add a unit test beside it. Criteria data is configuration; calculation results are derived state.
