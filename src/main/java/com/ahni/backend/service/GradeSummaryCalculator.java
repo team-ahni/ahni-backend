@@ -20,17 +20,22 @@ final class GradeSummaryCalculator {
     private GradeSummaryCalculator() { }
 
     static GradeSummaryResponse calculate(List<StudentGrade> grades) {
+        return summarizeAll(actualValues(effectiveAttempts(grades)));
+    }
+
+    // 학기 단위 판정(학사경고)은 이후 재수강으로 대체된 성적도 그 학기 기록으로 유지한다.
+    static GradeSummaryResponse calculateIncludingReplaced(List<StudentGrade> grades) {
         return summarizeAll(actualValues(grades));
     }
 
     static GradeSummaryResponse project(List<StudentGrade> grades, List<ExpectedGradeRequest> expectedGrades) {
-        return summarizeAll(Stream.concat(actualValues(grades).stream(), expectedGrades.stream()
+        return summarizeAll(Stream.concat(actualValues(effectiveAttempts(grades)).stream(), expectedGrades.stream()
             .map(grade -> new CalculationGrade(grade.category(), grade.credit(),
                 grade.gradeCode(), grade.gradeCode().gradePoint(), false))).toList());
     }
 
     private static List<CalculationGrade> actualValues(List<StudentGrade> grades) {
-        return effectiveAttempts(grades).stream()
+        return grades.stream()
             .map(grade -> new CalculationGrade(grade.getCourse().getCategory(), grade.getCredit(),
                 grade.getGradeCode(), grade.getGradePoint(), grade.isRpl())).toList();
     }

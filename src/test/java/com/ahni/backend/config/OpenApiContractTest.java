@@ -352,6 +352,36 @@ class OpenApiContractTest {
 	}
 
 	@Test
+	void scholarshipEndpointsAreDocumented() throws Exception {
+		String actual = mockMvc.perform(get("/v3/api-docs"))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		var document = objectMapper.readTree(actual);
+		var eligibility = document.at("/paths/~1api~1v1~1scholarship-eligibility/get");
+		var collection = document.at("/paths/~1api~1v1~1admin~1scholarship-criteria");
+		var item = document.at("/paths/~1api~1v1~1admin~1scholarship-criteria~1{criteriaEntityId}");
+
+		assertTrue(eligibility.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"#/components/schemas/ScholarshipEligibilityResponse",
+			eligibility.at("/responses/200/content/application~1json/schema/$ref").asText()
+		);
+		assertTrue(eligibility.at("/responses/404").isObject());
+		assertTrue(collection.at("/get/responses/403").isObject());
+		assertTrue(collection.at("/post/responses/201").isObject());
+		assertTrue(collection.at("/post/responses/409").isObject());
+		assertTrue(item.at("/put/responses/404").isObject());
+		assertTrue(item.at("/delete/responses/204").isObject());
+		assertTrue(item.at("/delete/security/0/bearerAuth").isArray());
+		var result = document.at("/components/schemas/ScholarshipResultResponse/properties");
+		assertTrue(result.has("gpaShortfall"));
+		assertTrue(result.has("creditShortfall"));
+		assertTrue(result.has("excessWarnings"));
+	}
+
+	@Test
 	void graduationProgressEndpointIsDocumented() throws Exception {
 		String actual = mockMvc.perform(get("/v3/api-docs"))
 			.andExpect(status().isOk())

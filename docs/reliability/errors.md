@@ -37,3 +37,5 @@ Add structured logging and a request correlation strategy when the first HTTP bo
 - `COURSE_NOT_FOUND` (404): a referenced course is unavailable for new assignment. Policy updates may retain an already-assigned inactive course.
 - `ADMIN_ACCESS_DENIED` (403): the authenticated subject has no active administrator profile, including for read-only policy impact.
 - `GRADUATION_REQUIREMENT_NOT_FOUND` (404): the requested policy does not exist; impact lookup performs no mutation.
+- `SCHOLARSHIP_CRITERIA_NOT_FOUND` (404): the requested scholarship criteria row does not exist.
+- `SCHOLARSHIP_CRITERIA_ALREADY_EXISTS` (409): the department and admission year already have criteria with the same name.
