@@ -19,6 +19,7 @@ flowchart LR
 - `dto`: request and response contracts, independent of persistence entities.
 - `config`: Spring configuration such as OpenAPI and security.
 - `exception`: application exceptions and HTTP error mapping with controller advice.
+- `client`: external provider clients used by services, such as `SupabaseStorageClient` for private inquiry attachments.
 
 These are packages under `com.ahni.backend`, not separate Gradle modules. Create a package with its first real class; do not add placeholder classes or an interface/implementation pair for every service.
 

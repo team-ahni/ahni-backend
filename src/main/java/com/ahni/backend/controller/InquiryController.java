@@ -40,7 +40,7 @@ public class InquiryController {
 
     @Operation(
         summary = "내 문의 등록",
-        description = "[인증 O] 학생이 관리자에게 문의를 남깁니다. 첨부파일은 아직 지원하지 않습니다.",
+        description = "[인증 O] 학생이 관리자에게 문의를 남깁니다. 첨부파일은 등록 후 첨부파일 API로 추가합니다.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
