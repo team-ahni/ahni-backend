@@ -13,7 +13,7 @@ class LectureProfessorNameMigrationIntegrationTest {
         try (var postgres = new PostgreSQLContainer<>("postgres:18")) {
             postgres.start();
             Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-                .target("24").load().migrate();
+                .target("25").load().migrate();
             try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
                  var sql = connection.createStatement()) {
                 sql.execute("INSERT INTO course(id,code,name,credit,category) VALUES(1001,'MIG101','과목',3,'GENERAL_EDUCATION')");
