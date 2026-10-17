@@ -77,11 +77,15 @@ public class Inquiry {
     }
 
     public void update(String title, String content) {
+        ensureEditable();
+        this.title = requireText(title, MAX_TITLE_LENGTH, "제목");
+        this.content = requireText(content, MAX_CONTENT_LENGTH, "내용");
+    }
+
+    public void ensureEditable() {
         if (status == InquiryStatus.ANSWERED || status == InquiryStatus.CLOSED) {
             throw new IllegalStateException("답변이 등록된 문의는 수정할 수 없습니다.");
         }
-        this.title = requireText(title, MAX_TITLE_LENGTH, "제목");
-        this.content = requireText(content, MAX_CONTENT_LENGTH, "내용");
     }
 
     public void delete() {

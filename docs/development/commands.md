@@ -30,7 +30,7 @@ The project uses the Gradle Wrapper. Do not require a globally installed Gradle 
 ./scripts/dev
 ```
 
-Set `AHNI_DEV_DB_URL`, `AHNI_DEV_DB_USERNAME`, and `AHNI_DEV_DB_PASSWORD` for the local Docker database. Keep `AHNI_SUPABASE_URL` pointing to the existing Auth project: JWT validation still uses Supabase Auth, while application data is stored locally.
+Set `AHNI_DEV_DB_URL`, `AHNI_DEV_DB_USERNAME`, and `AHNI_DEV_DB_PASSWORD` for the local Docker database. Keep `AHNI_SUPABASE_URL` pointing to the existing Auth project: JWT validation still uses Supabase Auth, while application data is stored locally. Inquiry attachments additionally need `AHNI_SUPABASE_SERVICE_ROLE_KEY`; without it the API starts, and attachment calls return `INQUIRY_ATTACHMENT_STORAGE_UNAVAILABLE`.
 
 Start the database before the API:
 

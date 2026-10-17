@@ -14,35 +14,17 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class LectureService {
     private final LectureRepository lectures;
-    private final ProfessorRepository professors;
     private final CourseRepository courses;
-    private final DepartmentRepository departments;
     private final AdminAccessService admins;
 
-    public LectureService(LectureRepository lectures, ProfessorRepository professors,
-        CourseRepository courses, DepartmentRepository departments, AdminAccessService admins) {
-        this.lectures = lectures; this.professors = professors; this.courses = courses;
-        this.departments = departments; this.admins = admins;
+    public LectureService(LectureRepository lectures, CourseRepository courses, AdminAccessService admins) {
+        this.lectures = lectures; this.courses = courses; this.admins = admins;
     }
 
     public List<LectureResponse> list(int year, AcademicTerm term) {
         if (year < 2000 || year > 9999 || term == null) throw new IllegalArgumentException();
         return lectures.findAllByAcademicYearAndTermOrderByCourseCodeAscSectionAsc(year, term).stream()
             .map(LectureService::response).toList();
-    }
-
-    public List<ProfessorResponse> professors(UUID user) {
-        admins.getAdmin(user);
-        return professors.findAllByDeletedAtIsNullOrderByNameAsc().stream().map(LectureService::response).toList();
-    }
-
-    @Transactional
-    public ProfessorResponse createProfessor(UUID user, ProfessorRequest request) {
-        admins.getAdmin(user);
-        Department department = request.departmentEntityId() == null ? null
-            : departments.findByEntityIdAndDeletedAtIsNull(request.departmentEntityId())
-                .orElseThrow(DepartmentNotFoundException::new);
-        return response(professors.saveAndFlush(new Professor(department, request.name(), request.office())));
     }
 
     @Transactional
@@ -71,12 +53,10 @@ public class LectureService {
 
     private LectureResponse createChecked(LectureRequest request) {
         Course course = courses.findByEntityIdAndActiveTrue(request.courseEntityId()).orElseThrow(CourseNotFoundException::new);
-        Professor professor = professors.findByEntityIdAndDeletedAtIsNull(request.professorEntityId())
-            .orElseThrow(LectureNotFoundException::new);
         if (lectures.existsByCourseIdAndAcademicYearAndTermAndSection(course.getId(),
             request.academicYear(), request.term(), request.section().trim()))
             throw new TimetableConflictException("같은 연도·학기의 분반이 이미 등록되어 있습니다.");
-        Lecture lecture = new Lecture(course, professor, request.academicYear(), request.term(), request.section());
+        Lecture lecture = new Lecture(course, request.professorName(), request.academicYear(), request.term(), request.section());
         request.schedules().forEach(s -> lecture.addSchedule(s.dayOfWeek(), s.startTime(), s.endTime(), s.classroom()));
         try { return response(lectures.saveAndFlush(lecture)); }
         catch (DataIntegrityViolationException exception) {
@@ -84,14 +64,10 @@ public class LectureService {
         }
     }
 
-    static ProfessorResponse response(Professor professor) {
-        return new ProfessorResponse(professor.getEntityId(), professor.getName(), professor.getOffice());
-    }
-
     static LectureResponse response(Lecture lecture) {
         return new LectureResponse(lecture.getEntityId(), lecture.getCourse().getEntityId(),
             lecture.getCourse().getCode(), lecture.getCourse().getName(), lecture.getCourse().getCredit(),
-            response(lecture.getProfessor()), lecture.getAcademicYear(), lecture.getTerm(), lecture.getSection(),
+            lecture.getProfessorName(), lecture.getAcademicYear(), lecture.getTerm(), lecture.getSection(),
             lecture.getSchedules().stream().map(s -> new LectureScheduleResponse(s.getEntityId(),
                 s.getDayOfWeek(), s.getStartTime(), s.getEndTime(), s.getClassroom())).toList());
     }

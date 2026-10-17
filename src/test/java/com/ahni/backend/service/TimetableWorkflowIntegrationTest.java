@@ -45,12 +45,11 @@ class TimetableWorkflowIntegrationTest {
     @Autowired TimetableService service;
     @Autowired StudentRepository students;
     @Autowired CourseRepository courses;
-    @Autowired ProfessorRepository professors;
     @Autowired LectureRepository lectures;
     @Autowired LectureService lectureService;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
-    Lecture lecture(Professor professor, String code, int start, int end) {
+    Lecture lecture(String professor, String code, int start, int end) {
         var course = courses.saveAndFlush(new Course(null, code, code, new BigDecimal("3.0"), CourseCategory.MAJOR));
         var lecture = new Lecture(course, professor, 2026, AcademicTerm.SECOND, "001");
         lecture.addSchedule(1, LocalTime.of(start, 0), LocalTime.of(end, 0), "101호");
@@ -63,12 +62,12 @@ class TimetableWorkflowIntegrationTest {
         UUID adminUser = UUID.randomUUID();
         jdbc.update("insert into admin (auth_user_id, name, email) values (?, ?, ?)",
             adminUser, "관리자", adminUser + "@inha.edu");
-        var professor = professors.saveAndFlush(new Professor(null, "일괄 등록 교수", null));
+        var professor = "일괄 등록 교수";
         var existing = lecture(professor, "BULK_DUP", 9, 10);
         var course = courses.saveAndFlush(new Course(null, "BULK_NEW", "새 강의", new BigDecimal("3.0"), CourseCategory.MAJOR));
         var times = List.of(new LectureScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(10, 0), null));
-        var first = new LectureRequest(course.getEntityId(), professor.getEntityId(), 2026, AcademicTerm.SECOND, "001", times);
-        var duplicate = new LectureRequest(existing.getCourse().getEntityId(), professor.getEntityId(),
+        var first = new LectureRequest(course.getEntityId(), professor, 2026, AcademicTerm.SECOND, "001", times);
+        var duplicate = new LectureRequest(existing.getCourse().getEntityId(), professor,
             2026, AcademicTerm.SECOND, "001", times);
         assertThatThrownBy(() -> lectureService.importLectures(adminUser, new LectureImportRequest(List.of(first, duplicate))))
             .isInstanceOf(TimetableConflictException.class);
@@ -82,7 +81,7 @@ class TimetableWorkflowIntegrationTest {
         UUID other = UUID.randomUUID();
         students.saveAndFlush(new Student(user, user + "@inha.edu", 2024, EnrollmentStatus.ENROLLED, "학생"));
         students.saveAndFlush(new Student(other, other + "@inha.edu", 2024, EnrollmentStatus.ENROLLED, "다른 학생"));
-        var professor = professors.saveAndFlush(new Professor(null, "교수", null));
+        var professor = "교수";
         var first = lecture(professor, "TT101", 9, 10);
         var adjacent = lecture(professor, "TT102", 10, 11);
         var overlap = lecture(professor, "TT103", 9, 11);

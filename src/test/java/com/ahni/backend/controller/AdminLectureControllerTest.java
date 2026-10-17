@@ -26,24 +26,31 @@ class AdminLectureControllerTest {
     @MockitoBean LectureService service;
     @MockitoBean JwtDecoder decoder;
 
-    @Test void professorRegistrationUsesJwtAndValidatedRequest() throws Exception {
+    @Test void lectureRegistrationUsesNameWithoutProfessorIdentity() throws Exception {
         var user = UUID.randomUUID();
-        var professor = UUID.randomUUID();
-        var request = new ProfessorRequest(null, "교수", null);
-        when(service.createProfessor(user, request)).thenReturn(new ProfessorResponse(professor, "교수", null));
-        mvc.perform(post("/api/v1/admin/professors")
+        var course = UUID.randomUUID();
+        mvc.perform(post("/api/v1/admin/lectures")
             .with(jwt().jwt(t -> t.subject(user.toString())))
-            .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"교수\"}"))
-            .andExpect(status().isCreated()).andExpect(jsonPath("$.entityId").value(professor.toString()));
-        verify(service).createProfessor(user, request);
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"courseEntityId":"%s","professorName":"남춘성,이우형",
+                 "academicYear":2026,"term":"SECOND","section":"001",
+                 "schedules":[{"dayOfWeek":1,"startTime":"09:00","endTime":"10:00"}]}
+                """.formatted(course)))
+            .andExpect(status().isCreated());
+        verify(service).create(eq(user), argThat(request -> request.professorName().equals("남춘성,이우형")));
     }
 
-    @Test void nonAdminAndUnauthenticatedUsersCannotReadProfessors() throws Exception {
+    @Test void nonAdminCannotRegisterLecture() throws Exception {
         var user = UUID.randomUUID();
-        when(service.professors(user)).thenThrow(new AdminAccessDeniedException());
-        mvc.perform(get("/api/v1/admin/professors").with(jwt().jwt(t -> t.subject(user.toString()))))
+        when(service.create(eq(user), any())).thenThrow(new AdminAccessDeniedException());
+        mvc.perform(post("/api/v1/admin/lectures")
+            .with(jwt().jwt(t -> t.subject(user.toString())))
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"courseEntityId":"%s","professorName":"교수",
+                 "academicYear":2026,"term":"SECOND","section":"001",
+                 "schedules":[{"dayOfWeek":1,"startTime":"09:00","endTime":"10:00"}]}
+                """.formatted(UUID.randomUUID())))
             .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ADMIN_ACCESS_DENIED"));
-        mvc.perform(get("/api/v1/admin/professors")).andExpect(status().isUnauthorized());
     }
 
     @Test void malformedLectureAndMissingAuthenticationAreRejected() throws Exception {

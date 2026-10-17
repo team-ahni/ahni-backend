@@ -18,9 +18,8 @@ public class Lecture {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "professor_id", nullable = false)
-    private Professor professor;
+    @Column(nullable = false, length = 500)
+    private String professorName;
     @Column(nullable = false)
     private int academicYear;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
@@ -37,12 +36,13 @@ public class Lecture {
 
     protected Lecture() { }
 
-    public Lecture(Course course, Professor professor, int year, AcademicTerm term, String section) {
-        if (course == null || professor == null || term == null || year < 2000 || year > 9999
+    public Lecture(Course course, String professorName, int year, AcademicTerm term, String section) {
+        if (course == null || professorName == null || professorName.isBlank() || professorName.trim().length() > 500
+            || term == null || year < 2000 || year > 9999
             || section == null || section.isBlank() || section.trim().length() > 30)
             throw new IllegalArgumentException("개설 강의 정보를 확인해 주세요.");
         this.course = course;
-        this.professor = professor;
+        this.professorName = professorName.trim();
         this.academicYear = year;
         this.term = term;
         this.section = section.trim();

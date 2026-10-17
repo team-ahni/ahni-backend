@@ -30,7 +30,7 @@ class TimetableServiceTest {
     }
     Lecture lecture(String code, int day, int start, int end) {
         var lecture = new Lecture(new Course(null, code, code, new BigDecimal("3.0"), CourseCategory.MAJOR),
-            new Professor(null, "교수", null), 2026, AcademicTerm.SECOND, "001");
+            "교수", 2026, AcademicTerm.SECOND, "001");
         lecture.addSchedule(day, LocalTime.of(start, 0), LocalTime.of(end, 0), "101호");
         return lecture;
     }

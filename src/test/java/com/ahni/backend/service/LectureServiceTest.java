@@ -19,38 +19,34 @@ import static org.mockito.ArgumentMatchers.any;
 @ExtendWith(MockitoExtension.class)
 class LectureServiceTest {
     @Mock LectureRepository lectures;
-    @Mock ProfessorRepository professors;
     @Mock CourseRepository courses;
-    @Mock DepartmentRepository departments;
     @Mock AdminAccessService admins;
     LectureService service;
     UUID user = UUID.randomUUID();
 
     @BeforeEach void setup() {
-        service = new LectureService(lectures, professors, courses, departments, admins);
+        service = new LectureService(lectures, courses, admins);
     }
 
-    @Test void studentCannotCreateProfessorOrAccessCatalogWrites() {
+    @Test void studentCannotAccessCatalogWrites() {
         when(admins.getAdmin(user)).thenThrow(new AdminAccessDeniedException());
-        assertThatThrownBy(() -> service.createProfessor(user, new ProfessorRequest(null, "교수", null)))
-            .isInstanceOf(AdminAccessDeniedException.class);
         assertThatThrownBy(() -> service.importLectures(user, new LectureImportRequest(List.of())))
             .isInstanceOf(AdminAccessDeniedException.class);
-        verifyNoInteractions(lectures, professors, courses, departments);
+        verifyNoInteractions(lectures, courses);
     }
 
     @Test void createsOfferingWithMultipleWeeklySchedules() {
         var course = new Course(null, "TT101", "자료구조", new BigDecimal("3.0"), CourseCategory.MAJOR);
-        var professor = new Professor(null, "교수", null);
+        var professor = "남춘성,이우형";
         when(courses.findByEntityIdAndActiveTrue(course.getEntityId())).thenReturn(Optional.of(course));
-        when(professors.findByEntityIdAndDeletedAtIsNull(professor.getEntityId())).thenReturn(Optional.of(professor));
         when(lectures.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
-        var result = service.create(user, new LectureRequest(course.getEntityId(), professor.getEntityId(),
+        var result = service.create(user, new LectureRequest(course.getEntityId(), professor,
             2026, AcademicTerm.SECOND, "001", List.of(
                 new LectureScheduleRequest(1, LocalTime.of(9, 30), LocalTime.of(11, 0), "101호"),
                 new LectureScheduleRequest(3, LocalTime.of(13, 0), LocalTime.of(14, 30), "102호"))));
         assertThat(result.schedules()).hasSize(2);
         assertThat(result.courseName()).isEqualTo("자료구조");
+        assertThat(result.professorName()).isEqualTo("남춘성,이우형");
         verify(admins).getAdmin(user);
     }
 }

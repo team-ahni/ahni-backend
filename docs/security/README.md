@@ -12,5 +12,7 @@
 - Treat email confirmation as proof of mailbox control, not proof of current enrollment or legal identity.
 - Do not relink a student profile to a new Supabase user ID using email alone.
 - Validate file type, size, and content before OCR or storage.
+- Inquiry attachments live in the private Supabase Storage bucket `inquiry-attachments` without `storage.objects` client policies. Only the backend reads or writes it with `AHNI_SUPABASE_SERVICE_ROLE_KEY`; never return public or signed URLs, and always download as `attachment` with the server-validated content type.
+- `inquiry` and `inquiry_attachment` use RLS without direct-client allow policies, like `curriculum`.
 - Keep secrets in environment variables or a secret manager, never in Git.
 - Treat OCR, map, notification, and other external service responses as untrusted input.

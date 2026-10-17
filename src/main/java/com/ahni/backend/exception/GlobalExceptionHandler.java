@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 @Hidden
@@ -158,6 +161,51 @@ public class GlobalExceptionHandler {
         return new ApiErrorResponse("INQUIRY_UPDATE_CONFLICT", exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidInquiryAttachmentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse handleInvalidInquiryAttachment(InvalidInquiryAttachmentException exception) {
+        return new ApiErrorResponse("INVALID_INQUIRY_ATTACHMENT", exception.getMessage());
+    }
+
+    @ExceptionHandler({InquiryAttachmentTooLargeException.class, MaxUploadSizeExceededException.class})
+    @ResponseStatus(HttpStatus.CONTENT_TOO_LARGE)
+    public ApiErrorResponse handleInquiryAttachmentTooLarge() {
+        return new ApiErrorResponse(
+            "INQUIRY_ATTACHMENT_TOO_LARGE",
+            new InquiryAttachmentTooLargeException().getMessage()
+        );
+    }
+
+    @ExceptionHandler(UnsupportedInquiryAttachmentTypeException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public ApiErrorResponse handleUnsupportedInquiryAttachmentType(
+        UnsupportedInquiryAttachmentTypeException exception
+    ) {
+        return new ApiErrorResponse("UNSUPPORTED_INQUIRY_ATTACHMENT_TYPE", exception.getMessage());
+    }
+
+    @ExceptionHandler(InquiryAttachmentLimitExceededException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiErrorResponse handleInquiryAttachmentLimitExceeded(
+        InquiryAttachmentLimitExceededException exception
+    ) {
+        return new ApiErrorResponse("INQUIRY_ATTACHMENT_LIMIT_EXCEEDED", exception.getMessage());
+    }
+
+    @ExceptionHandler(InquiryAttachmentNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleInquiryAttachmentNotFound(InquiryAttachmentNotFoundException exception) {
+        return new ApiErrorResponse("INQUIRY_ATTACHMENT_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(InquiryAttachmentStorageUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiErrorResponse handleInquiryAttachmentStorageUnavailable(
+        InquiryAttachmentStorageUnavailableException exception
+    ) {
+        return new ApiErrorResponse("INQUIRY_ATTACHMENT_STORAGE_UNAVAILABLE", exception.getMessage());
+    }
+
     @ExceptionHandler(GraduationRequirementNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiErrorResponse handleGraduationRequirementNotFound(
@@ -221,6 +269,8 @@ public class GlobalExceptionHandler {
         MethodArgumentTypeMismatchException.class,
         org.springframework.web.bind.MissingServletRequestParameterException.class,
         org.springframework.web.method.annotation.HandlerMethodValidationException.class,
+        MissingServletRequestPartException.class,
+        MultipartException.class,
         IllegalArgumentException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)

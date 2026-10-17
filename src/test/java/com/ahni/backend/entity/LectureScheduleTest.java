@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.*;
 class LectureScheduleTest {
     private Lecture lecture() {
         return new Lecture(new Course(null, "TEST101", "자료구조", new BigDecimal("3.0"), CourseCategory.MAJOR),
-            new Professor(null, "교수", null), 2026, AcademicTerm.SECOND, "001");
+            "교수", 2026, AcademicTerm.SECOND, "001");
     }
     @Test
     void overlappingAndAdjacentTimes() {

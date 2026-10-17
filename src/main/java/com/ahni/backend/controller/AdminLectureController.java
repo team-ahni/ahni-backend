@@ -40,24 +40,9 @@ public class AdminLectureController {
         return service.importLectures(UUID.fromString(jwt.getSubject()), request);
     }
 
-    @GetMapping("/professors")
-    @Operation(summary = "교수 목록 조회", description = "활성 관리자만 사용할 수 있습니다.")
-    public List<ProfessorResponse> professors(@AuthenticationPrincipal Jwt jwt) {
-        return service.professors(UUID.fromString(jwt.getSubject()));
-    }
-
-    @PostMapping("/professors")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "교수 등록", description = "동명이인을 허용합니다. 학과와 연구실은 선택값입니다.")
-    @ApiResponse(responseCode = "201", description = "교수 등록 성공",
-        content = @Content(schema = @Schema(implementation = ProfessorResponse.class)))
-    public ProfessorResponse professor(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ProfessorRequest request) {
-        return service.createProfessor(UUID.fromString(jwt.getSubject()), request);
-    }
-
     @PostMapping("/lectures")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "개설 강의 등록", description = "기존 활성 과목·교수를 연결하며 요일별 시간을 1~14건 입력합니다.")
+    @Operation(summary = "개설 강의 등록", description = "기존 활성 과목과 담당교수 이름을 저장하며 요일별 시간을 1~14건 입력합니다.")
     @ApiResponse(responseCode = "201", description = "강의 등록 성공",
         content = @Content(schema = @Schema(implementation = LectureResponse.class)))
     public LectureResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody LectureRequest request) {
