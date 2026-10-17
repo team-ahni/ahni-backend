@@ -58,6 +58,22 @@ class OpenApiContractTest {
         assertTrue(published.path("published").asBoolean());
     }
 
+    @Test
+    void inquiryAttachmentContractUsesMultipartUploadAndBinaryDownloads() throws Exception {
+        String actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        var document = objectMapper.readTree(actual);
+        var upload = document.at("/paths/~1api~1v1~1inquiries~1{inquiryEntityId}~1attachments/post");
+        assertTrue(upload.at("/security/0/bearerAuth").isArray());
+        assertEquals("binary", upload.at("/requestBody/content/multipart~1form-data/schema/properties/file/format").asText());
+        for (var code : new String[]{"201", "400", "401", "404", "409", "413", "415", "503"}) assertTrue(upload.path("responses").has(code));
+        for (var path : new String[]{"~1api~1v1~1inquiries", "~1api~1v1~1admin~1inquiries"}) {
+            var download = document.at("/paths/" + path + "~1{inquiryEntityId}~1attachments~1{attachmentEntityId}/get/responses/200/content");
+            for (var type : new String[]{"image~1jpeg", "image~1png", "application~1pdf"}) assertEquals("binary", download.at("/" + type + "/schema/format").asText());
+        }
+        assertTrue(document.at("/paths/~1api~1v1~1admin~1inquiries~1{inquiryEntityId}~1attachments/get/responses").has("403"));
+    }
+
 	@Autowired
 	private MockMvc mockMvc;
 
