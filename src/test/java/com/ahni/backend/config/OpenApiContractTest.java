@@ -22,6 +22,31 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Tag("integration")
 class OpenApiContractTest {
+    @Test
+    void lecturesUseInstructorTextWithoutProfessorResources() throws Exception {
+        var actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        var document = objectMapper.readTree(actual);
+        assertTrue(!document.path("paths").has("/api/v1/admin/professors"));
+        assertTrue(!document.at("/components/schemas").has("ProfessorResponse"));
+        assertTrue(document.at("/components/schemas/LectureRequest/required").toString().contains("professorName"));
+        assertEquals(500, document.at("/components/schemas/LectureRequest/properties/professorName/maxLength").asInt());
+        assertTrue(document.at("/components/schemas/LectureResponse/properties").has("professorName"));
+        assertTrue(!document.at("/components/schemas/LectureResponse/properties").has("professor"));
+    }
+
+    @Test
+    void lectureImportDocumentsAtomicAdminBatchAndArrayResponse() throws Exception {
+        String actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        var document = objectMapper.readTree(actual);
+        var operation = document.at("/paths/~1api~1v1~1admin~1lectures~1import/post");
+        assertTrue(operation.at("/security/0/bearerAuth").isArray());
+        for (String code : new String[]{"201", "400", "401", "403", "404", "409"})
+            assertTrue(operation.path("responses").has(code));
+        assertEquals("array", operation.at("/responses/201/content/application~1json/schema/type").asText());
+        assertEquals(200, document.at("/components/schemas/LectureImportRequest/properties/lectures/maxItems").asInt());
+    }
 
     @Test
     void yearlyCurriculumContractHasAuthenticatedYearQueryAndVersionedAdminWrites() throws Exception {

@@ -1,5 +1,7 @@
 # API Authoring Guide
 
+학생 시간표와 관리자 개설 강의 등록은 [시간표 API](timetable.md)를 참고하세요.
+
 The backend OpenAPI document is the single API contract for the mobile and administrator clients. Clients consume a pinned contract version and must not access Supabase PostgreSQL directly.
 
 The read-only [grade simulation API](grade-simulation.md) compares current and projected GPA without persisting expected grades.
