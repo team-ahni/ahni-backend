@@ -48,6 +48,31 @@ class TimetableWorkflowIntegrationTest {
     @Autowired LectureRepository lectures;
     @Autowired LectureService lectureService;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired jakarta.persistence.EntityManager entityManager;
+
+    @Test
+    void semesterLookupFetchesCoursesAndSchedulesInOneQueryIncludingUntimedOfferings() {
+        var first = lecture("남춘성,이우형", "FETCH_A", 19, 22);
+        first.addSchedule(6, LocalTime.of(9, 0), LocalTime.of(12, 0), "M-301");
+        lectures.saveAndFlush(first);
+        lecture("교수", "FETCH_B", 9, 12);
+        var course = courses.saveAndFlush(new Course(null, "FETCH_WEB", "금융시장론", new BigDecimal("3.0"), CourseCategory.MAJOR));
+        lectures.saveAndFlush(new Lecture(course, "이기환", 2026, AcademicTerm.SECOND, "001"));
+        entityManager.clear();
+        var statistics = entityManager.getEntityManagerFactory().unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            var found = lectureService.list(2026, AcademicTerm.SECOND).stream()
+                .filter(row -> row.courseCode().startsWith("FETCH_")).toList();
+            assertThat(found).hasSize(3);
+            assertThat(found.get(0).schedules()).hasSize(2);
+            assertThat(found.get(2).schedules()).isEmpty();
+            assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+        } finally {
+            statistics.setStatisticsEnabled(false);
+        }
+    }
 
     Lecture lecture(String professor, String code, int start, int end) {
         var course = courses.saveAndFlush(new Course(null, code, code, new BigDecimal("3.0"), CourseCategory.MAJOR));
