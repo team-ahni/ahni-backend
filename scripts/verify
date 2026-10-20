@@ -4,5 +4,6 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 node --test .github/tests/auto-pr.test.cjs
+node --test scripts/prepare-inha-semester-import.test.mjs
 node --test data/academic/2024/general-education/verify.test.cjs data/academic/verify-general-education.test.cjs data/academic/verify-department-curricula.test.cjs
 ./gradlew clean check integrationTest
