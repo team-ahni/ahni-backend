@@ -4,6 +4,7 @@ import com.ahni.backend.domain.EnrollmentStatus;
 import com.ahni.backend.domain.InquiryStatus;
 import com.ahni.backend.dto.AdminInquiryResponse;
 import com.ahni.backend.dto.InquiryAnswerRequest;
+import com.ahni.backend.dto.InquiryAssigneeRequest;
 import com.ahni.backend.entity.Admin;
 import com.ahni.backend.entity.Inquiry;
 import com.ahni.backend.entity.Student;
@@ -136,5 +137,72 @@ class AdminInquiryServiceTest {
 
         assertThatThrownBy(() -> service.get(authUserId, inquiryEntityId))
             .isInstanceOf(InquiryNotFoundException.class);
+    }
+
+    @Test
+    void 관리자가_문의_담당자를_지정하고_해제한다() {
+        Inquiry inquiry = new Inquiry(student, "문의", "내용");
+        UUID assigneeEntityId = UUID.randomUUID();
+        Admin assignee = mock(Admin.class);
+        when(assignee.getEntityId()).thenReturn(assigneeEntityId);
+        when(assignee.getName()).thenReturn("담당자");
+        when(access.getAdmin(authUserId)).thenReturn(admin);
+        when(access.findActiveAdmin(assigneeEntityId)).thenReturn(Optional.of(assignee));
+        when(inquiries.findByEntityId(inquiry.getEntityId()))
+            .thenReturn(Optional.of(inquiry));
+
+        AdminInquiryResponse assigned = service.assign(
+            authUserId,
+            inquiry.getEntityId(),
+            new InquiryAssigneeRequest(assigneeEntityId)
+        );
+
+        assertThat(assigned.assignedAdmin().entityId()).isEqualTo(assigneeEntityId);
+        assertThat(assigned.assignedAdmin().name()).isEqualTo("담당자");
+        assertThat(assigned.status()).isEqualTo(InquiryStatus.SUBMITTED);
+
+        AdminInquiryResponse unassigned = service.assign(
+            authUserId,
+            inquiry.getEntityId(),
+            new InquiryAssigneeRequest(null)
+        );
+
+        assertThat(unassigned.assignedAdmin()).isNull();
+    }
+
+    @Test
+    void 활성_관리자가_아니면_담당자로_지정할_수_없다() {
+        Inquiry inquiry = new Inquiry(student, "문의", "내용");
+        UUID assigneeEntityId = UUID.randomUUID();
+        when(access.getAdmin(authUserId)).thenReturn(admin);
+        when(access.findActiveAdmin(assigneeEntityId)).thenReturn(Optional.empty());
+        when(inquiries.findByEntityId(inquiry.getEntityId()))
+            .thenReturn(Optional.of(inquiry));
+
+        assertThatThrownBy(() -> service.assign(
+            authUserId,
+            inquiry.getEntityId(),
+            new InquiryAssigneeRequest(assigneeEntityId)
+        ))
+            .isInstanceOf(InvalidInquiryException.class)
+            .hasMessage("담당 관리자를 찾을 수 없습니다.");
+        assertThat(inquiry.getAssignedAdmin()).isNull();
+    }
+
+    @Test
+    void 삭제된_문의에는_담당자를_지정할_수_없다() {
+        Inquiry inquiry = new Inquiry(student, "문의", "내용");
+        inquiry.delete();
+        when(access.getAdmin(authUserId)).thenReturn(admin);
+        when(inquiries.findByEntityId(inquiry.getEntityId()))
+            .thenReturn(Optional.of(inquiry));
+
+        assertThatThrownBy(() -> service.assign(
+            authUserId,
+            inquiry.getEntityId(),
+            new InquiryAssigneeRequest(null)
+        ))
+            .isInstanceOf(InvalidInquiryException.class)
+            .hasMessage("삭제된 문의에는 담당자를 지정할 수 없습니다.");
     }
 }

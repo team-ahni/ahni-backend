@@ -7,6 +7,8 @@ import com.ahni.backend.repository.AdminRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -19,16 +21,30 @@ public class AdminAccessService {
     }
 
     public AdminIdentityResponse getCurrentAdmin(UUID authUserId) {
-        Admin admin = getAdmin(authUserId);
-        return new AdminIdentityResponse(
-            admin.getEntityId(),
-            admin.getName(),
-            admin.getEmail()
-        );
+        return identity(getAdmin(authUserId));
+    }
+
+    public List<AdminIdentityResponse> findActiveAdmins(UUID authUserId) {
+        getAdmin(authUserId);
+        return adminRepository.findAllByDeletedAtIsNullOrderByNameAsc().stream()
+            .map(AdminAccessService::identity)
+            .toList();
+    }
+
+    public Optional<Admin> findActiveAdmin(UUID adminEntityId) {
+        return adminRepository.findByEntityIdAndDeletedAtIsNull(adminEntityId);
     }
 
     public Admin getAdmin(UUID authUserId) {
         return adminRepository.findByAuthUserIdAndDeletedAtIsNull(authUserId)
             .orElseThrow(AdminAccessDeniedException::new);
+    }
+
+    public static AdminIdentityResponse identity(Admin admin) {
+        return new AdminIdentityResponse(
+            admin.getEntityId(),
+            admin.getName(),
+            admin.getEmail()
+        );
     }
 }

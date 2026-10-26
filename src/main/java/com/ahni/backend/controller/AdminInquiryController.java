@@ -3,6 +3,7 @@ package com.ahni.backend.controller;
 import com.ahni.backend.dto.AdminInquiryResponse;
 import com.ahni.backend.dto.ApiErrorResponse;
 import com.ahni.backend.dto.InquiryAnswerRequest;
+import com.ahni.backend.dto.InquiryAssigneeRequest;
 import com.ahni.backend.service.AdminInquiryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -77,5 +78,20 @@ public class AdminInquiryController {
         @Valid @RequestBody InquiryAnswerRequest request
     ) {
         return service.answer(UUID.fromString(jwt.getSubject()), inquiryEntityId, request);
+    }
+
+    @PutMapping("/{inquiryEntityId}/assignee")
+    @Operation(summary = "문의 담당자 지정", description = "[관리자 인증 O] 활성 관리자를 문의 담당자로 지정합니다. adminEntityId가 null이면 담당자를 해제합니다. 담당자 지정은 답변 권한을 제한하지 않습니다.")
+    @ApiResponse(responseCode = "200", description = "문의 담당자 지정 성공",
+        content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminInquiryResponse.class)))
+    @ApiResponse(responseCode = "400", description = "없는 관리자 또는 삭제된 문의",
+        content = @Content(schema = @Schema(implementation = ApiErrorResponse.class),
+            examples = @ExampleObject(value = "{\"code\":\"INVALID_INQUIRY\",\"message\":\"담당 관리자를 찾을 수 없습니다.\"}")))
+    public AdminInquiryResponse assign(
+        @AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID inquiryEntityId,
+        @RequestBody InquiryAssigneeRequest request
+    ) {
+        return service.assign(UUID.fromString(jwt.getSubject()), inquiryEntityId, request);
     }
 }

@@ -22,6 +22,9 @@ public record AdminInquiryResponse(
     @Schema(description = "처리 상태")
     InquiryStatus status,
 
+    @Schema(description = "담당 관리자. 지정 전이면 null", nullable = true)
+    AdminIdentityResponse assignedAdmin,
+
     @Schema(description = "관리자 답변. 아직 답변 전이면 null", nullable = true)
     String answer,
 
