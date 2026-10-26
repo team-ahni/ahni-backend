@@ -2,11 +2,14 @@ package com.ahni.backend.controller;
 
 import com.ahni.backend.config.SecurityConfiguration;
 import com.ahni.backend.domain.InquiryStatus;
+import com.ahni.backend.dto.AdminIdentityResponse;
 import com.ahni.backend.dto.AdminInquiryResponse;
 import com.ahni.backend.dto.AdminInquiryStudentResponse;
 import com.ahni.backend.dto.InquiryAnswerRequest;
+import com.ahni.backend.dto.InquiryAssigneeRequest;
 import com.ahni.backend.exception.AdminAccessDeniedException;
 import com.ahni.backend.exception.InquiryNotFoundException;
+import com.ahni.backend.exception.InvalidInquiryException;
 import com.ahni.backend.service.AdminInquiryService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminInquiryControllerTest {
     private static final UUID AUTH_USER_ID = UUID.fromString(
         "00000000-0000-0000-0000-000000000010"
+    );
+    private static final UUID ASSIGNEE_ENTITY_ID = UUID.fromString(
+        "00000000-0000-0000-0000-000000000011"
     );
     private static final UUID INQUIRY_ENTITY_ID = UUID.fromString(
         "00000000-0000-0000-0000-000000000701"
@@ -120,6 +126,47 @@ class AdminInquiryControllerTest {
     }
 
     @Test
+    void 관리자가_문의_담당자를_지정한다() throws Exception {
+        InquiryAssigneeRequest request = new InquiryAssigneeRequest(ASSIGNEE_ENTITY_ID);
+        when(service.assign(AUTH_USER_ID, INQUIRY_ENTITY_ID, request))
+            .thenReturn(response(
+                InquiryStatus.IN_REVIEW,
+                new AdminIdentityResponse(ASSIGNEE_ENTITY_ID, "담당자", "assignee@inha.edu"),
+                null,
+                null,
+                null
+            ));
+
+        mockMvc.perform(put("/api/v1/admin/inquiries/" + INQUIRY_ENTITY_ID + "/assignee")
+                .with(jwt().jwt(token -> token.subject(AUTH_USER_ID.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"adminEntityId": "00000000-0000-0000-0000-000000000011"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.assignedAdmin.entityId").value(ASSIGNEE_ENTITY_ID.toString()))
+            .andExpect(jsonPath("$.assignedAdmin.name").value("담당자"));
+
+        verify(service).assign(AUTH_USER_ID, INQUIRY_ENTITY_ID, request);
+    }
+
+    @Test
+    void 없는_관리자를_담당자로_지정하면_400을_응답한다() throws Exception {
+        InquiryAssigneeRequest request = new InquiryAssigneeRequest(ASSIGNEE_ENTITY_ID);
+        when(service.assign(AUTH_USER_ID, INQUIRY_ENTITY_ID, request))
+            .thenThrow(new InvalidInquiryException("담당 관리자를 찾을 수 없습니다."));
+
+        mockMvc.perform(put("/api/v1/admin/inquiries/" + INQUIRY_ENTITY_ID + "/assignee")
+                .with(jwt().jwt(token -> token.subject(AUTH_USER_ID.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"adminEntityId": "00000000-0000-0000-0000-000000000011"}
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_INQUIRY"));
+    }
+
+    @Test
     void 관리자_권한이_없으면_403을_응답한다() throws Exception {
         when(service.findAll(AUTH_USER_ID)).thenThrow(new AdminAccessDeniedException());
 
@@ -154,6 +201,16 @@ class AdminInquiryControllerTest {
         String answeredByAdminName,
         Instant answeredAt
     ) {
+        return response(status, null, answer, answeredByAdminName, answeredAt);
+    }
+
+    private static AdminInquiryResponse response(
+        InquiryStatus status,
+        AdminIdentityResponse assignedAdmin,
+        String answer,
+        String answeredByAdminName,
+        Instant answeredAt
+    ) {
         return new AdminInquiryResponse(
             INQUIRY_ENTITY_ID,
             new AdminInquiryStudentResponse(
@@ -164,6 +221,7 @@ class AdminInquiryControllerTest {
             "성적 등록 문의",
             "2025년 과목이 보이지 않습니다.",
             status,
+            assignedAdmin,
             answer,
             answeredByAdminName,
             answeredAt,

@@ -13,6 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -71,6 +72,29 @@ class AdminAccessControllerTest {
             .thenThrow(new AdminAccessDeniedException());
 
         mockMvc.perform(get("/api/v1/admin/me")
+                .with(jwt().jwt(token -> token.subject(AUTH_USER_ID.toString()))))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ADMIN_ACCESS_DENIED"));
+    }
+
+    @Test
+    void 관리자는_활성_관리자_목록을_조회한다() throws Exception {
+        when(service.findActiveAdmins(AUTH_USER_ID)).thenReturn(List.of(
+            new AdminIdentityResponse(ADMIN_ENTITY_ID, "관리자 이름", "admin@inha.edu")
+        ));
+
+        mockMvc.perform(get("/api/v1/admin/admins")
+                .with(jwt().jwt(token -> token.subject(AUTH_USER_ID.toString()))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].entityId").value(ADMIN_ENTITY_ID.toString()))
+            .andExpect(jsonPath("$[0].name").value("관리자 이름"));
+    }
+
+    @Test
+    void 관리자가_아니면_관리자_목록을_조회할_수_없다() throws Exception {
+        when(service.findActiveAdmins(AUTH_USER_ID)).thenThrow(new AdminAccessDeniedException());
+
+        mockMvc.perform(get("/api/v1/admin/admins")
                 .with(jwt().jwt(token -> token.subject(AUTH_USER_ID.toString()))))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("ADMIN_ACCESS_DENIED"));

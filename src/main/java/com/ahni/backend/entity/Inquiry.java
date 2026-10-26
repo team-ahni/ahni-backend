@@ -57,6 +57,10 @@ public class Inquiry {
 
     private Instant answeredAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_admin_id")
+    private Admin assignedAdmin;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -96,6 +100,10 @@ public class Inquiry {
         if (status == InquiryStatus.SUBMITTED) {
             this.status = InquiryStatus.IN_REVIEW;
         }
+    }
+
+    public void assign(Admin admin) {
+        this.assignedAdmin = admin;
     }
 
     public void answer(Admin admin, String answer) {
