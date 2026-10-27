@@ -2,6 +2,8 @@
 
 학생 시간표와 관리자 개설 강의 등록은 [시간표 API](timetable.md)를 참고하세요.
 
+학기별 수강 과목 추천 규칙은 [수강 추천 API](course-recommendation.md)를 참고하세요.
+
 The backend OpenAPI document is the single API contract for the mobile and administrator clients. Clients consume a pinned contract version and must not access Supabase PostgreSQL directly.
 
 The read-only [grade simulation API](grade-simulation.md) compares current and projected GPA without persisting expected grades.
@@ -12,7 +14,7 @@ The read-only [grade simulation API](grade-simulation.md) compares current and p
 
 ## API completion checklist
 
-`GET /api/v1/admin/me` returns the authenticated user's active administrator profile. A valid Supabase session without an active `admin` mapping receives `403 ADMIN_ACCESS_DENIED`.
+`GET /api/v1/admin/me` returns the authenticated user's active administrator profile. A valid Supabase session without an active `admin` mapping receives `403 ADMIN_ACCESS_DENIED`. `GET /api/v1/admin/admins` lists active administrators by name for selecting an inquiry assignee with `PUT /api/v1/admin/inquiries/{inquiryEntityId}/assignee`.
 
 An API change is incomplete unless the same change includes all of the following:
 

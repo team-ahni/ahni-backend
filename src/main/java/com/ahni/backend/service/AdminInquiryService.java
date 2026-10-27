@@ -3,6 +3,7 @@ package com.ahni.backend.service;
 import com.ahni.backend.dto.AdminInquiryResponse;
 import com.ahni.backend.dto.AdminInquiryStudentResponse;
 import com.ahni.backend.dto.InquiryAnswerRequest;
+import com.ahni.backend.dto.InquiryAssigneeRequest;
 import com.ahni.backend.entity.Admin;
 import com.ahni.backend.entity.Inquiry;
 import com.ahni.backend.entity.Student;
@@ -63,6 +64,25 @@ public class AdminInquiryService {
         }
     }
 
+    @Transactional
+    public AdminInquiryResponse assign(
+        UUID authUserId,
+        UUID inquiryEntityId,
+        InquiryAssigneeRequest request
+    ) {
+        access.getAdmin(authUserId);
+        Inquiry inquiry = find(inquiryEntityId);
+        if (inquiry.getDeletedAt() != null) {
+            throw new InvalidInquiryException("삭제된 문의에는 담당자를 지정할 수 없습니다.");
+        }
+        Admin assignee = request.adminEntityId() == null
+            ? null
+            : access.findActiveAdmin(request.adminEntityId())
+                .orElseThrow(() -> new InvalidInquiryException("담당 관리자를 찾을 수 없습니다."));
+        inquiry.assign(assignee);
+        return response(inquiry);
+    }
+
     private Inquiry find(UUID inquiryEntityId) {
         return inquiries.findByEntityId(inquiryEntityId)
             .orElseThrow(InquiryNotFoundException::new);
@@ -71,6 +91,7 @@ public class AdminInquiryService {
     private static AdminInquiryResponse response(Inquiry inquiry) {
         Student student = inquiry.getStudent();
         Admin answeredByAdmin = inquiry.getAnsweredByAdmin();
+        Admin assignedAdmin = inquiry.getAssignedAdmin();
         return new AdminInquiryResponse(
             inquiry.getEntityId(),
             new AdminInquiryStudentResponse(
@@ -81,6 +102,7 @@ public class AdminInquiryService {
             inquiry.getTitle(),
             inquiry.getContent(),
             inquiry.getStatus(),
+            assignedAdmin == null ? null : AdminAccessService.identity(assignedAdmin),
             inquiry.getAnswer(),
             answeredByAdmin == null ? null : answeredByAdmin.getName(),
             inquiry.getAnsweredAt(),

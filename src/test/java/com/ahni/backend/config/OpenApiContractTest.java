@@ -237,6 +237,40 @@ class OpenApiContractTest {
 			answerPut.at("/responses/200/content/application~1json/schema/$ref").asText()
 		);
 		assertTrue(document.at("/components/schemas/AdminInquiryResponse/properties/deletedAt").isObject());
+		assertTrue(document.at("/components/schemas/AdminInquiryResponse/properties/assignedAdmin").isObject());
+		var assigneePut = document.at("/paths/~1api~1v1~1admin~1inquiries~1{inquiryEntityId}~1assignee/put");
+		assertTrue(assigneePut.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"#/components/schemas/InquiryAssigneeRequest",
+			assigneePut.at("/requestBody/content/application~1json/schema/$ref").asText()
+		);
+		assertTrue(assigneePut.at("/responses/400").isObject());
+		var adminsGet = document.at("/paths/~1api~1v1~1admin~1admins/get");
+		assertTrue(adminsGet.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"array",
+			adminsGet.at("/responses/200/content/application~1json/schema/type").asText()
+		);
+	}
+
+	@Test
+	void courseRecommendationEndpointIsDocumented() throws Exception {
+		String actual = mockMvc.perform(get("/v3/api-docs"))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		var document = objectMapper.readTree(actual);
+		var operation = document.at("/paths/~1api~1v1~1course-recommendations/get");
+
+		assertTrue(operation.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"#/components/schemas/CourseRecommendationResponse",
+			operation.at("/responses/200/content/application~1json/schema/$ref").asText()
+		);
+		assertTrue(operation.at("/responses/400").isObject());
+		assertTrue(operation.at("/responses/404").isObject());
+		assertTrue(document.at("/components/schemas/RecommendedCourseResponse/properties/reasons").isObject());
 	}
 
 	@Test
