@@ -45,6 +45,7 @@ class AdminCurriculumControllerTest {
     @Autowired ObjectMapper json;
     @Autowired DepartmentRepository departments;
     @Autowired CourseRepository courses;
+    @Autowired com.ahni.backend.repository.LectureRepository lectures;
     @Autowired com.ahni.backend.repository.StudentRepository students;
     @Autowired com.ahni.backend.repository.StudentMajorRepository majors;
     @Autowired com.ahni.backend.repository.StudentGradeRepository grades;
@@ -196,7 +197,7 @@ class AdminCurriculumControllerTest {
         mvc.perform(get("/api/v1/curriculum-courses").with(jwt())).andExpect(status().isBadRequest());
     }
 
-    @Test void rejectsWrongYearForRegistrationButPreservesSameYearLegacyEdits() throws Exception {
+    @Test void rejectsUnofferedYearButPreservesSameSemesterLegacyEdits() throws Exception {
         jdbc.update("INSERT INTO student(auth_user_id, email, admission_year, enrollment_status) VALUES (?, ?, 2024, 'ENROLLED')", admin, admin + "@inha.edu");
         var created = create(input(null, course));
         mvc.perform(put("/api/v1/admin/curricula/" + created.path("entityId").asText() + "/publication")
@@ -204,7 +205,8 @@ class AdminCurriculumControllerTest {
             .content("{\"published\":true,\"version\":0}")).andExpect(status().isOk());
         mvc.perform(post("/api/v1/grades").with(jwt().jwt(t -> t.subject(admin.toString())))
             .contentType("application/json").content(gradeInput(2025)))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CURRICULUM_NOT_AVAILABLE"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_GRADE"));
+        lectures.saveAndFlush(new com.ahni.backend.entity.Lecture(courses.findByEntityId(course).orElseThrow(), "교수", 2024, com.ahni.backend.domain.AcademicTerm.FIRST, "001"));
         courses.findByEntityId(course).orElseThrow().deactivate();
         courses.flush();
         var saved = mvc.perform(post("/api/v1/grades").with(jwt().jwt(t -> t.subject(admin.toString())))
@@ -218,7 +220,22 @@ class AdminCurriculumControllerTest {
             .contentType("application/json").content(gradeInput(2024))).andExpect(status().isOk());
         mvc.perform(put("/api/v1/grades/" + gradeId).with(jwt().jwt(t -> t.subject(admin.toString())))
             .contentType("application/json").content(gradeInput(2025)))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CURRICULUM_NOT_AVAILABLE"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_GRADE"));
+    }
+
+    @Test void offeredCoursesAreDeduplicatedAndFilteredByTerm() throws Exception {
+        var selected = courses.findByEntityId(course).orElseThrow();
+        lectures.saveAndFlush(new com.ahni.backend.entity.Lecture(selected, "교수", 2024, com.ahni.backend.domain.AcademicTerm.FIRST, "001"));
+        lectures.saveAndFlush(new com.ahni.backend.entity.Lecture(selected, "다른 교수", 2024, com.ahni.backend.domain.AcademicTerm.FIRST, "002"));
+        mvc.perform(get("/api/v1/lectures/courses").param("academicYear", "2024").param("term", "FIRST").with(jwt()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].entityId").value(course.toString()))
+            .andExpect(jsonPath("$[0].professorNames[0]").value("교수"))
+            .andExpect(jsonPath("$[0].professorNames[1]").value("다른 교수"));
+        mvc.perform(get("/api/v1/lectures/courses").param("academicYear", "2024").param("term", "SECOND").with(jwt()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/v1/lectures/courses").param("academicYear", "2024").param("term", "FIRST"))
+            .andExpect(status().isUnauthorized());
     }
 
     private String gradeInput(int year) {
@@ -259,7 +276,7 @@ class AdminCurriculumControllerTest {
         jdbc.update("INSERT INTO student(auth_user_id, email, admission_year, enrollment_status) VALUES (?, ?, 2024, 'ENROLLED')", admin, admin + "@inha.edu");
         mvc.perform(post("/api/v1/grades").with(jwt().jwt(t -> t.subject(admin.toString())))
             .contentType("application/json").content(gradeInput(2025).replace("\"A_PLUS\"", "null").replace("\"rpl\":false", "\"rpl\":true")))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("COURSE_NOT_IN_CURRICULUM"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_GRADE"));
         mvc.perform(get("/api/v1/curriculum-courses").param("academicYear", "1999").with(jwt()))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }

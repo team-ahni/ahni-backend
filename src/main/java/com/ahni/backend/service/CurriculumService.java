@@ -20,14 +20,16 @@ public class CurriculumService {
     private final CurriculumCourseRepository links;
     private final CourseRepository courses;
     private final DepartmentRepository departments;
+    private final LectureRepository lectures;
 
     public CurriculumService(AdminAccessService access, CurriculumRepository curricula,
-        CurriculumCourseRepository links, CourseRepository courses, DepartmentRepository departments) {
+        CurriculumCourseRepository links, CourseRepository courses, DepartmentRepository departments, LectureRepository lectures) {
         this.access = access;
         this.curricula = curricula;
         this.links = links;
         this.courses = courses;
         this.departments = departments;
+        this.lectures = lectures;
     }
 
     public List<CurriculumResponse> list(UUID authUserId) {
@@ -50,6 +52,27 @@ public class CurriculumService {
         List<Course> published = links.findPublishedCourses(academicYear, departmentEntityId);
         if (published.isEmpty()) throw new CurriculumNotAvailableException();
         return published.stream().map(CurriculumService::courseResponse).toList();
+    }
+
+    public List<OfferedCourseResponse> getOfferedCourses(int year, com.ahni.backend.domain.AcademicTerm term) {
+        if (year < 2000 || year > 9999 || term == null) throw new IllegalArgumentException("수강 연도와 학기를 확인해 주세요.");
+        var grouped = lectures.findOfferedCourses(year, term).stream()
+            .collect(java.util.stream.Collectors.groupingBy(lecture -> lecture.getCourse().getEntityId(),
+                LinkedHashMap::new, java.util.stream.Collectors.toList()));
+        return grouped.values().stream().map(group -> {
+            var base = courseResponse(group.getFirst().getCourse());
+            var professors = group.stream().map(Lecture::getProfessorName).distinct().toList();
+            return new OfferedCourseResponse(base.entityId(), base.code(), base.name(), base.credit(),
+                base.category(), base.department(), professors);
+        }).toList();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Course requireOfferedCourse(int year, com.ahni.backend.domain.AcademicTerm term, UUID courseEntityId) {
+        Course course = courses.findByEntityId(courseEntityId).orElseThrow(CourseNotFoundException::new);
+        if (!lectures.existsByCourseEntityIdAndAcademicYearAndTerm(courseEntityId, year, term))
+            throw new InvalidGradeException("선택한 연도와 학기에 개설되지 않은 과목입니다.");
+        return course;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

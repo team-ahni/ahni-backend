@@ -205,7 +205,7 @@ class GradeServiceTest {
     @Test
     void 존재하지_않는_과목에는_성적을_등록할_수_없다() {
         when(studentRepository.findByAuthUserId(authUserId)).thenReturn(Optional.of(student));
-        when(courseRepository.requirePublishedCourse(anyInt(), eq(course.getEntityId())))
+        when(courseRepository.requireOfferedCourse(anyInt(), any(), eq(course.getEntityId())))
             .thenThrow(new CourseNotFoundException());
 
         assertThatThrownBy(() -> gradeService.register(
@@ -611,7 +611,7 @@ class GradeServiceTest {
 
     private void stubRegistrationTarget(Course targetCourse) {
         when(studentRepository.findByAuthUserId(authUserId)).thenReturn(Optional.of(student));
-        when(courseRepository.requirePublishedCourse(anyInt(), eq(targetCourse.getEntityId())))
+        when(courseRepository.requireOfferedCourse(anyInt(), any(), eq(targetCourse.getEntityId())))
             .thenReturn(targetCourse);
     }
 

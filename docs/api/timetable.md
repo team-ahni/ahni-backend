@@ -22,6 +22,7 @@
 | 메서드 | 경로 | 동작 |
 | --- | --- | --- |
 | GET | /api/v1/lectures?academicYear=2026&term=SECOND | 학기 개설 강의 |
+| GET | /api/v1/lectures/courses?academicYear=2026&term=SECOND | 학기 개설 과목 (분반 중복 제거, 성적 등록용) |
 | GET | /api/v1/timetable?academicYear=2026&term=SECOND | 내 시간표 |
 | POST | /api/v1/timetable | 강의 추가 |
 | PUT | /api/v1/timetable/{entityId} | 같은 학기의 강의로 교체 |
