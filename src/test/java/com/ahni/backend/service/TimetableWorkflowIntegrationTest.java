@@ -51,6 +51,59 @@ class TimetableWorkflowIntegrationTest {
     @Autowired jakarta.persistence.EntityManager entityManager;
 
     @Test
+    void adminEditsPropagateAndDeletionRemovesOnlyTargetLinksWhilePreservingCourses() {
+        var admin = UUID.randomUUID();
+        jdbc.update("insert into admin(auth_user_id,name,email) values(?,?,?)", admin, "관리자", admin + "@inha.edu");
+        var user = UUID.randomUUID();
+        var other = UUID.randomUUID();
+        students.saveAndFlush(new Student(user, user + "@inha.edu", 2024, EnrollmentStatus.ENROLLED, "학생"));
+        students.saveAndFlush(new Student(other, other + "@inha.edu", 2024, EnrollmentStatus.ENROLLED, "다른 학생"));
+        var target = lecture("기존 교수", "MUTATE_A", 9, 10);
+        var retained = lecture("유지 교수", "MUTATE_B", 11, 12);
+        var targetId = target.getEntityId();
+        var courseId = target.getCourse().getEntityId();
+        jdbc.update("insert into student_grade(student_id,course_id,academic_year,term,grade_code,grade_point,credit) "
+            + "select id,?,2026,'FIRST','A_ZERO',4.0,3.0 from student where auth_user_id=?", target.getCourse().getId(), user);
+        var entry = service.create(user, new TimetableRequest(targetId));
+        var retainedEntry = service.create(user, new TimetableRequest(retained.getEntityId()));
+        service.create(other, new TimetableRequest(targetId));
+        lectureService.update(admin, targetId, new LectureUpdateRequest(courseId, "남춘성,이우형", 2026,
+            AcademicTerm.SECOND, "002", List.of(new LectureScheduleRequest(6, LocalTime.of(19,0), LocalTime.of(22,0), "M-301"))));
+        entityManager.clear();
+        var updated = service.list(user, 2026, AcademicTerm.SECOND).stream()
+            .filter(row -> row.entityId().equals(entry.entityId())).findFirst().orElseThrow();
+        assertThat(updated.lecture().entityId()).isEqualTo(targetId);
+        assertThat(updated.lecture().professorName()).isEqualTo("남춘성,이우형");
+        assertThat(updated.lecture().schedules().getFirst().classroom()).isEqualTo("M-301");
+        lectureService.update(admin, targetId, new LectureUpdateRequest(courseId, "웹강의 교수", 2026,
+            AcademicTerm.SECOND, "002", List.of()));
+        entityManager.clear();
+        assertThat(service.list(other, 2026, AcademicTerm.SECOND).getFirst().lecture().schedules()).isEmpty();
+        lectureService.delete(admin, targetId);
+        entityManager.clear();
+        assertThat(service.list(user, 2026, AcademicTerm.SECOND)).extracting(TimetableResponse::entityId)
+            .containsExactly(retainedEntry.entityId());
+        assertThat(service.list(other, 2026, AcademicTerm.SECOND)).isEmpty();
+        assertThat(lectures.findByEntityId(targetId)).isEmpty();
+        assertThat(courses.findByEntityIdAndActiveTrue(courseId)).isPresent();
+        assertThat(jdbc.queryForObject("select count(*) from student_grade where course_id=?", Long.class, target.getCourse().getId())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from lecture_schedule where lecture_id=?", Long.class, target.getId())).isZero();
+    }
+
+    @Test
+    void duplicateSectionUpdateRollsBackAndRetainsThePreviousSchedules() {
+        var admin = UUID.randomUUID();
+        jdbc.update("insert into admin(auth_user_id,name,email) values(?,?,?)", admin, "관리자", admin + "@inha.edu");
+        var target = lecture("기존 교수", "MUTATE_DUP", 9, 10);
+        lectures.saveAndFlush(new Lecture(target.getCourse(), "다른 교수", 2026, AcademicTerm.SECOND, "002"));
+        assertThatThrownBy(() -> lectureService.update(admin, target.getEntityId(), new LectureUpdateRequest(
+            target.getCourse().getEntityId(), "수정 교수", 2026, AcademicTerm.SECOND, "002", List.of())))
+            .isInstanceOf(TimetableConflictException.class);
+        assertThat(target.getProfessorName()).isEqualTo("기존 교수");
+        assertThat(target.getSchedules()).hasSize(1);
+    }
+
+    @Test
     void semesterLookupFetchesCoursesAndSchedulesInOneQueryIncludingUntimedOfferings() {
         var first = lecture("남춘성,이우형", "FETCH_A", 19, 22);
         first.addSchedule(6, LocalTime.of(9, 0), LocalTime.of(12, 0), "M-301");

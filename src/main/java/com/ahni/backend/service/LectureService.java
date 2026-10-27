@@ -16,9 +16,12 @@ public class LectureService {
     private final LectureRepository lectures;
     private final CourseRepository courses;
     private final AdminAccessService admins;
+    private final TimetableRepository timetables;
 
-    public LectureService(LectureRepository lectures, CourseRepository courses, AdminAccessService admins) {
+    public LectureService(LectureRepository lectures, CourseRepository courses, AdminAccessService admins,
+        TimetableRepository timetables) {
         this.lectures = lectures; this.courses = courses; this.admins = admins;
+        this.timetables = timetables;
     }
 
     public List<LectureResponse> list(int year, AcademicTerm term) {
@@ -31,6 +34,34 @@ public class LectureService {
     public LectureResponse create(UUID user, LectureRequest request) {
         admins.getAdmin(user);
         return createChecked(request);
+    }
+
+    @Transactional
+    public LectureResponse update(UUID user, UUID id, LectureUpdateRequest request) {
+        admins.getAdmin(user);
+        Lecture lecture = lectures.findForCatalogUpdate(id).orElseThrow(LectureNotFoundException::new);
+        if (!lecture.getCourse().getEntityId().equals(request.courseEntityId())
+            || lecture.getAcademicYear() != request.academicYear() || lecture.getTerm() != request.term())
+            throw new IllegalArgumentException("과목과 개설 연도·학기는 변경할 수 없습니다.");
+        if (lectures.existsByCourseIdAndAcademicYearAndTermAndSectionAndEntityIdNot(
+            lecture.getCourse().getId(), lecture.getAcademicYear(), lecture.getTerm(), request.section().trim(), id))
+            throw new TimetableConflictException("같은 연도·학기의 분반이 이미 등록되어 있습니다.");
+        var schedules = request.schedules().stream().map(s -> new LectureSchedule(lecture,
+            s.dayOfWeek(), s.startTime(), s.endTime(), s.classroom())).toList();
+        lecture.revise(request.professorName(), request.section(), schedules);
+        try { return response(lectures.saveAndFlush(lecture)); }
+        catch (DataIntegrityViolationException exception) {
+            throw new TimetableConflictException("같은 연도·학기의 분반이 이미 등록되어 있습니다.");
+        }
+    }
+
+    @Transactional
+    public void delete(UUID user, UUID id) {
+        admins.getAdmin(user);
+        Lecture lecture = lectures.findForCatalogUpdate(id).orElseThrow(LectureNotFoundException::new);
+        timetables.deleteAllForLecture(lecture);
+        lectures.delete(lecture);
+        lectures.flush();
     }
 
     @Transactional

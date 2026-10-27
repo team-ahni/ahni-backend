@@ -22,4 +22,18 @@ class LectureTest {
                 .isInstanceOf(IllegalArgumentException.class);
         }
     }
+
+    @Test void invalidRevisionPreservesExistingDetailsAndSchedules() {
+        var lecture = new Lecture(course, "기존 교수", 2026, AcademicTerm.SECOND, "001");
+        lecture.addSchedule(1, java.time.LocalTime.of(9, 0), java.time.LocalTime.of(10, 0), "101호");
+        var overlapping = java.util.List.of(
+            new LectureSchedule(lecture, 2, java.time.LocalTime.of(9, 0), java.time.LocalTime.of(11, 0), "102호"),
+            new LectureSchedule(lecture, 2, java.time.LocalTime.of(10, 0), java.time.LocalTime.of(12, 0), "103호"));
+        assertThatThrownBy(() -> lecture.revise("수정 교수", "002", overlapping))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThat(lecture.getProfessorName()).isEqualTo("기존 교수");
+        assertThat(lecture.getSection()).isEqualTo("001");
+        assertThat(lecture.getSchedules()).hasSize(1);
+        assertThat(lecture.getSchedules().getFirst().getClassroom()).isEqualTo("101호");
+    }
 }
