@@ -235,6 +235,26 @@ class OpenApiContractTest {
 	}
 
 	@Test
+	void courseRecommendationEndpointIsDocumented() throws Exception {
+		String actual = mockMvc.perform(get("/v3/api-docs"))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		var document = objectMapper.readTree(actual);
+		var operation = document.at("/paths/~1api~1v1~1course-recommendations/get");
+
+		assertTrue(operation.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"#/components/schemas/CourseRecommendationResponse",
+			operation.at("/responses/200/content/application~1json/schema/$ref").asText()
+		);
+		assertTrue(operation.at("/responses/400").isObject());
+		assertTrue(operation.at("/responses/404").isObject());
+		assertTrue(document.at("/components/schemas/RecommendedCourseResponse/properties/reasons").isObject());
+	}
+
+	@Test
 	void adminIdentityEndpointIsDocumentedForAuthenticatedAdministrators() throws Exception {
 		String actual = mockMvc.perform(get("/v3/api-docs"))
 			.andExpect(status().isOk())
