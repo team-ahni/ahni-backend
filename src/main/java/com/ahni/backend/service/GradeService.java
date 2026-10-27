@@ -60,7 +60,7 @@ public class GradeService {
         GradeRegistrationRequest request
     ) {
         Student student = findStudent(authUserId);
-        Course course = curriculumService.requirePublishedCourse(request.academicYear(), request.courseEntityId());
+        Course course = curriculumService.requireOfferedCourse(request.academicYear(), request.term(), request.courseEntityId());
 
         if (gradeRepository.existsByStudentAndCourseAndAcademicYearAndTerm(
             student,
@@ -134,8 +134,8 @@ public class GradeService {
         Student student = findStudent(authUserId);
         StudentGrade grade = findGrade(gradeEntityId, student);
 
-        if (grade.getAcademicYear() != request.academicYear()) {
-            curriculumService.requirePublishedCourse(request.academicYear(), grade.getCourse().getEntityId());
+        if (grade.getAcademicYear() != request.academicYear() || grade.getTerm() != request.term()) {
+            curriculumService.requireOfferedCourse(request.academicYear(), request.term(), grade.getCourse().getEntityId());
         }
 
         if (gradeRepository.existsByStudentAndCourseAndAcademicYearAndTermAndIdNot(

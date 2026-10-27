@@ -3,7 +3,6 @@ package com.ahni.backend.service;
 import com.ahni.backend.domain.*;
 import com.ahni.backend.dto.*;
 import com.ahni.backend.entity.*;
-import com.ahni.backend.exception.CurriculumNotAvailableException;
 import com.ahni.backend.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +38,7 @@ class CurriculumConcurrencyIntegrationTest {
     @Autowired GradeService grades;
     @Autowired DepartmentRepository departments;
     @Autowired CourseRepository courses;
+    @Autowired LectureRepository lectures;
     @Autowired JdbcTemplate jdbc;
     UUID admin;
     UUID student;
@@ -53,40 +53,15 @@ class CurriculumConcurrencyIntegrationTest {
         jdbc.update("insert into student(auth_user_id, email, admission_year, enrollment_status) values (?, ?, 2024, 'ENROLLED')", student, student + "@inha.edu");
         var department = departments.saveAndFlush(new Department("동시성" + year));
         course = courses.saveAndFlush(new Course(department, "LOCK" + year, "기초", new BigDecimal("3.0"), CourseCategory.MAJOR)).getEntityId();
+        lectures.saveAndFlush(new Lecture(courses.findByEntityId(course).orElseThrow(), "교수", year, AcademicTerm.FIRST, "001"));
         var draft = curricula.create(admin, new CurriculumRequest(department.getEntityId(), year, "동시성 테스트 자료", null, null,
             List.of(new CurriculumCourseRequest(course, CurriculumDivision.MAJOR_REQUIRED, null, null, null, null, null, null))));
         curriculum = curricula.publish(admin, draft.entityId(), new CurriculumPublicationRequest(true, draft.version()));
     }
 
-    @Test void publicationWaitsUntilValidatedGradeIsCommitted() throws Exception {
+    @Test void publicationDoesNotBlockOfferedCourseRegistration() throws Exception {
         var held = new CountDownLatch(1);
         var release = new CountDownLatch(1);
-        var started = new CountDownLatch(1);
-        try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
-            var registration = workers.submit(() -> new TransactionTemplate(transactions).execute(status -> {
-                var result = grades.register(student, request());
-                held.countDown(); await(release); return result;
-            }));
-            try {
-                assertThat(held.await(10, TimeUnit.SECONDS)).isTrue();
-                var publication = workers.submit(() -> {
-                    started.countDown();
-                    return curricula.publish(admin, curriculum.entityId(), new CurriculumPublicationRequest(false, curriculum.version()));
-                });
-                assertThat(started.await(10, TimeUnit.SECONDS)).isTrue();
-                assertThatThrownBy(() -> publication.get(300, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
-                release.countDown();
-                assertThat(registration.get(10, TimeUnit.SECONDS)).isNotNull();
-                assertThat(publication.get(10, TimeUnit.SECONDS).published()).isFalse();
-                assertThat(grades.getGrades(student)).hasSize(1);
-            } finally { release.countDown(); }
-        }
-    }
-
-    @Test void registrationWaitsForPublicationAndThenRejectsDraft() throws Exception {
-        var held = new CountDownLatch(1);
-        var release = new CountDownLatch(1);
-        var started = new CountDownLatch(1);
         try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
             var publication = workers.submit(() -> new TransactionTemplate(transactions).execute(status -> {
                 var result = curricula.publish(admin, curriculum.entityId(), new CurriculumPublicationRequest(false, curriculum.version()));
@@ -94,15 +69,11 @@ class CurriculumConcurrencyIntegrationTest {
             }));
             try {
                 assertThat(held.await(10, TimeUnit.SECONDS)).isTrue();
-                var registration = workers.submit(() -> {
-                    started.countDown(); return grades.register(student, request());
-                });
-                assertThat(started.await(10, TimeUnit.SECONDS)).isTrue();
-                assertThatThrownBy(() -> registration.get(300, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+                var registration = workers.submit(() -> grades.register(student, request()));
+                assertThat(registration.get(10, TimeUnit.SECONDS)).isNotNull();
                 release.countDown();
                 assertThat(publication.get(10, TimeUnit.SECONDS).published()).isFalse();
-                assertThatThrownBy(() -> registration.get(10, TimeUnit.SECONDS)).hasCauseInstanceOf(CurriculumNotAvailableException.class);
-                assertThat(grades.getGrades(student)).isEmpty();
+                assertThat(grades.getGrades(student)).hasSize(1);
             } finally { release.countDown(); }
         }
     }

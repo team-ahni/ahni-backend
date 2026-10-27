@@ -20,6 +20,12 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
     Optional<Lecture> findForCatalogUpdate(@Param("id") UUID entityId);
     @EntityGraph(attributePaths = {"course", "schedules"})
     List<Lecture> findAllByAcademicYearAndTermOrderByCourseCodeAscSectionAsc(int year, AcademicTerm term);
+    @Query("""
+        select l from Lecture l join fetch l.course c left join fetch c.department
+        where l.academicYear = :year and l.term = :term order by c.code, l.section
+        """)
+    List<Lecture> findOfferedCourses(@Param("year") int year, @Param("term") AcademicTerm term);
+    boolean existsByCourseEntityIdAndAcademicYearAndTerm(UUID courseEntityId, int academicYear, AcademicTerm term);
     boolean existsByCourseIdAndAcademicYearAndTermAndSection(Long courseId, int year, AcademicTerm term, String section);
     boolean existsByCourseIdAndAcademicYearAndTermAndSectionAndEntityIdNot(
         Long courseId, int year, AcademicTerm term, String section, UUID entityId);

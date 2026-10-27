@@ -88,7 +88,7 @@ public class GradeController {
 
     @Operation(
         summary = "내 성적 등록",
-        description = "[인증 O] JWT의 사용자에게 과목별 학기 성적을 등록합니다. 선택 연도의 공개 교과과정에 연결된 과목만 허용하며 RPL도 같은 검증을 적용합니다. 비활성 과목도 과거 교과과정에 연결되어 있으면 허용합니다.",
+        description = "[인증 O] JWT의 사용자에게 과목별 학기 성적을 등록합니다. 선택한 연도와 학기에 개설된 강의의 과목만 허용하며 RPL도 같은 검증을 적용합니다.",
         security = @SecurityRequirement(name = "bearerAuth"),
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -144,7 +144,7 @@ public class GradeController {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "요청값 또는 성적 규칙 오류. COURSE_NOT_IN_CURRICULUM: 선택 연도에 연결되지 않은 과목",
+            description = "요청값 또는 성적 규칙 오류. INVALID_GRADE: 선택한 학기에 개설되지 않은 과목",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ApiErrorResponse.class),
@@ -155,14 +155,14 @@ public class GradeController {
                     @ExampleObject(name = "성적 규칙 오류", value = """
                         {"code":"INVALID_GRADE","message":"일반 성적에는 등급이 필수입니다."}
                         """),
-                    @ExampleObject(name = "다른 연도 과목", value = "{\"code\":\"COURSE_NOT_IN_CURRICULUM\",\"message\":\"선택한 연도의 교과과정에 없는 과목입니다.\"}")
+                    @ExampleObject(name = "다른 연도 과목", value = "{\"code\":\"INVALID_GRADE\",\"message\":\"선택한 연도와 학기에 개설되지 않은 과목입니다.\"}")
                 }
             )
         ),
         @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
         @ApiResponse(
             responseCode = "404",
-            description = "학생 프로필, 과목 또는 재수강 대상 성적을 찾을 수 없음. CURRICULUM_NOT_AVAILABLE: 해당 연도의 공개 교과과정 없음",
+            description = "학생 프로필, 과목 또는 재수강 대상 성적을 찾을 수 없음",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ApiErrorResponse.class),
@@ -175,8 +175,7 @@ public class GradeController {
                         """),
                     @ExampleObject(name = "재수강 대상 없음", value = """
                         {"code":"GRADE_NOT_FOUND","message":"성적을 찾을 수 없습니다."}
-                        """),
-                    @ExampleObject(name = "교과과정 없음", value = "{\"code\":\"CURRICULUM_NOT_AVAILABLE\",\"message\":\"이 연도의 교과과정을 이용할 수 없습니다.\"}")
+                        """)
                 }
             )
         ),
@@ -325,7 +324,7 @@ public class GradeController {
 
     @Operation(
         summary = "내 성적 수정",
-        description = "[인증 O] 본인이 등록한 성적의 학기, 등급, 학점, RPL 및 재수강 대상 성적을 수정합니다. 과목은 변경하지 않습니다. 연도가 바뀌면 공개 교과과정 연결을 재검증합니다. 같은 연도의 기존 성적은 자료 미등록·비공개 상태여도 수정할 수 있습니다.",
+        description = "[인증 O] 본인이 등록한 성적의 학기, 등급, 학점, RPL 및 재수강 대상 성적을 수정합니다. 과목은 변경하지 않습니다. 연도 또는 학기가 바뀌면 해당 학기 개설 여부를 재검증합니다. 기존 연도와 학기를 유지하면 개설 자료가 없어도 수정할 수 있습니다.",
         security = @SecurityRequirement(name = "bearerAuth"),
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -380,7 +379,7 @@ public class GradeController {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "요청값 또는 성적 규칙 오류. COURSE_NOT_IN_CURRICULUM: 변경 연도에 연결되지 않은 과목",
+            description = "요청값 또는 성적 규칙 오류. INVALID_GRADE: 변경한 학기에 개설되지 않은 과목",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ApiErrorResponse.class),
@@ -391,7 +390,7 @@ public class GradeController {
                     @ExampleObject(name = "성적 규칙 오류", value = """
                         {"code":"INVALID_GRADE","message":"RPL 성적에는 등급을 입력할 수 없습니다."}
                         """),
-                    @ExampleObject(name = "다른 연도 과목", value = "{\"code\":\"COURSE_NOT_IN_CURRICULUM\",\"message\":\"변경한 연도의 교과과정에 없는 과목입니다.\"}")
+                    @ExampleObject(name = "다른 연도 과목", value = "{\"code\":\"INVALID_GRADE\",\"message\":\"선택한 연도와 학기에 개설되지 않은 과목입니다.\"}")
                 }
             )
         ),
@@ -408,8 +407,7 @@ public class GradeController {
                         """),
                     @ExampleObject(name = "성적 없음", value = """
                         {"code":"GRADE_NOT_FOUND","message":"성적을 찾을 수 없습니다."}
-                        """),
-                    @ExampleObject(name = "교과과정 없음", value = "{\"code\":\"CURRICULUM_NOT_AVAILABLE\",\"message\":\"이 연도의 교과과정을 이용할 수 없습니다.\"}")
+                        """)
                 }
             )
         ),
