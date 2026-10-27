@@ -26,6 +26,55 @@ class AdminLectureControllerTest {
     @MockitoBean LectureService service;
     @MockitoBean JwtDecoder decoder;
 
+    private String updateBody(UUID course) {
+        return """
+            {"courseEntityId":"%s","professorName":"남춘성,이우형",
+             "academicYear":2026,"term":"SECOND","section":"002","schedules":[]}
+            """.formatted(course);
+    }
+
+    @Test void updateAndDeleteRequireAuthenticationAndValidateRequests() throws Exception {
+        var id = UUID.randomUUID();
+        mvc.perform(put("/api/v1/admin/lectures/{id}", id).contentType(MediaType.APPLICATION_JSON)
+            .content(updateBody(UUID.randomUUID()))).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/v1/admin/lectures/{id}", id)).andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/admin/lectures/{id}", id).with(jwt()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"professorName\":\"\",\"schedules\":null}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(service);
+    }
+
+    @Test void updatePreservesUntimedOfferingsAndDeleteReturnsNoContent() throws Exception {
+        var user = UUID.randomUUID();
+        var id = UUID.randomUUID();
+        mvc.perform(put("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString())))
+            .contentType(MediaType.APPLICATION_JSON).content(updateBody(UUID.randomUUID())))
+            .andExpect(status().isOk());
+        verify(service).update(eq(user), eq(id), argThat(r -> r.schedules().isEmpty() && r.section().equals("002")));
+        mvc.perform(delete("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString()))))
+            .andExpect(status().isNoContent()).andExpect(content().string(""));
+        verify(service).delete(user, id);
+    }
+
+    @Test void nonAdminsCannotUpdateOrDeleteAndMissingLecturesHaveStableErrors() throws Exception {
+        var user = UUID.randomUUID();
+        var id = UUID.randomUUID();
+        when(service.update(eq(user), eq(id), any())).thenThrow(new AdminAccessDeniedException());
+        doThrow(new AdminAccessDeniedException()).when(service).delete(user, id);
+        mvc.perform(put("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString())))
+            .contentType(MediaType.APPLICATION_JSON).content(updateBody(UUID.randomUUID())))
+            .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString()))))
+            .andExpect(status().isForbidden());
+        when(service.update(eq(user), eq(id), any())).thenThrow(new com.ahni.backend.exception.LectureNotFoundException());
+        doThrow(new com.ahni.backend.exception.LectureNotFoundException()).when(service).delete(user, id);
+        mvc.perform(put("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString())))
+            .contentType(MediaType.APPLICATION_JSON).content(updateBody(UUID.randomUUID())))
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("LECTURE_NOT_FOUND"));
+        mvc.perform(delete("/api/v1/admin/lectures/{id}", id).with(jwt().jwt(t -> t.subject(user.toString()))))
+            .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("LECTURE_NOT_FOUND"));
+    }
+
     @Test void lectureRegistrationUsesNameWithoutProfessorIdentity() throws Exception {
         var user = UUID.randomUUID();
         var course = UUID.randomUUID();

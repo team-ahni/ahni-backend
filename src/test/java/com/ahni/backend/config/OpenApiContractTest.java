@@ -23,6 +23,25 @@ import tools.jackson.databind.ObjectMapper;
 @Tag("integration")
 class OpenApiContractTest {
     @Test
+    void adminLectureMutationsDocumentIdentityProtectionAndLinkedTimetableDeletion() throws Exception {
+        var actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        var document = objectMapper.readTree(actual);
+        var path = document.at("/paths/~1api~1v1~1admin~1lectures~1{entityId}");
+        for (String method : new String[]{"put", "delete"}) {
+            assertTrue(path.path(method).at("/security/0/bearerAuth").isArray());
+            for (String code : new String[]{"400", "401", "403", "404"})
+                assertTrue(path.path(method).path("responses").has(code));
+        }
+        assertTrue(path.at("/put/responses").has("200"));
+        assertTrue(path.at("/put/responses").has("409"));
+        assertTrue(path.at("/delete/responses").has("204"));
+        assertEquals("#/components/schemas/LectureUpdateRequest", path.at("/put/requestBody/content/application~1json/schema/$ref").asText());
+        assertEquals(0, document.at("/components/schemas/LectureUpdateRequest/properties/schedules/minItems").asInt());
+        assertEquals(14, document.at("/components/schemas/LectureUpdateRequest/properties/schedules/maxItems").asInt());
+    }
+
+    @Test
     void lecturesUseInstructorTextWithoutProfessorResources() throws Exception {
         var actual = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();

@@ -55,6 +55,23 @@ public class Lecture {
         schedules.add(next);
     }
 
+    public void revise(String professorName, String section, List<LectureSchedule> next) {
+        var validated = new Lecture(course, professorName, academicYear, term, section);
+        if (next == null || next.size() > 14) throw new IllegalArgumentException("수업 시간을 확인해 주세요.");
+        for (int i = 0; i < next.size(); i++) {
+            if (next.get(i) == null || next.get(i).getLecture() != this)
+                throw new IllegalArgumentException("강의에 속한 수업 시간을 확인해 주세요.");
+            for (int j = 0; j < i; j++) {
+                if (next.get(i).overlaps(next.get(j)))
+                    throw new IllegalArgumentException("한 강의의 수업 시간이 서로 겹칩니다.");
+            }
+        }
+        this.professorName = validated.professorName;
+        this.section = validated.section;
+        schedules.clear();
+        schedules.addAll(next);
+    }
+
     @PrePersist
     void onCreate() { createdAt = updatedAt = Instant.now(); }
     @PreUpdate
