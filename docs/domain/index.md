@@ -43,6 +43,8 @@ Manual grade deletion is a hard delete because no audit-retention requirement ha
 
 Grade simulation adds 1–50 expected course-category/credit/grade-code inputs to the authenticated student's effective history. It shares the summary calculator, preserves original weighted totals until final rounding, and returns current and projected summaries without changing grade rows. Expected retakes/RPL and target-GPA solving remain out of scope. See [Grade simulation API](../api/grade-simulation.md).
 
+Course recommendation is read-only guidance for a regular term. It ranks unfinished graduation-required, overdue, and currently recommended curriculum courses plus retake candidates (C+ or below, F, NP) per active major, restricted to offered lectures when that term has lecture data. See [Course recommendation API](../api/course-recommendation.md).
+
 Supabase email confirmation is the signup gate. `PENDING` describes a Supabase user before email confirmation and is not a persisted student account status. The backend creates a student profile only from an authenticated JWT and derives ownership from its subject and email claims.
 
 Email confirmation proves control of an allowed address, not current enrollment. Enrollment status is initially self-reported and may influence academic guidance and notification policy. Do not introduce certificate upload, administrator approval, or external enrollment verification without a new approved decision.
