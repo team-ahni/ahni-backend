@@ -6,12 +6,18 @@ import com.ahni.backend.entity.Student;
 import com.ahni.backend.entity.StudentGrade;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface StudentGradeRepository extends JpaRepository<StudentGrade, Long> {
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from StudentGrade grade where grade.student = :student")
+    void deleteAllForStudent(Student student);
+
     boolean existsByStudentAndCourseAndAcademicYearAndTerm(
         Student student,
         Course course,
