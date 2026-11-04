@@ -177,6 +177,11 @@ public class GradeService {
     }
 
     @Transactional
+    public void deleteAll(UUID authUserId) {
+        gradeRepository.deleteAllForStudent(findStudent(authUserId));
+    }
+
+    @Transactional
     public void delete(UUID authUserId, UUID gradeEntityId) {
         Student student = findStudent(authUserId);
         StudentGrade grade = findGrade(gradeEntityId, student);

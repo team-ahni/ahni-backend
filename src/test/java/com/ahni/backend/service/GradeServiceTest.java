@@ -82,6 +82,15 @@ class GradeServiceTest {
     }
 
     @Test
+    void 인증된_학생의_성적만_초기화한다() {
+        when(studentRepository.findByAuthUserId(authUserId)).thenReturn(Optional.of(student));
+
+        gradeService.deleteAll(authUserId);
+
+        verify(gradeRepository).deleteAllForStudent(student);
+    }
+
+    @Test
     void 인증된_학생의_성적을_등록한다() {
         stubRegistrationTarget(course);
         when(gradeRepository.saveAndFlush(any(StudentGrade.class)))

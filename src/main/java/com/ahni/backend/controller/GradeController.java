@@ -442,6 +442,24 @@ public class GradeController {
     }
 
     @Operation(
+        summary = "내 성적 초기화",
+        description = "[인증 O] 로그인한 학생의 모든 성적을 삭제합니다. 이미 비어 있어도 성공합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "성적 초기화 성공", content = @Content),
+        @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+        @ApiResponse(responseCode = "404", description = "학생 프로필을 찾을 수 없음",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class),
+                examples = @ExampleObject(value = "{\"code\":\"STUDENT_NOT_FOUND\",\"message\":\"학생 프로필을 찾을 수 없습니다.\"}")))
+    })
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAll(@AuthenticationPrincipal Jwt jwt) {
+        gradeService.deleteAll(UUID.fromString(jwt.getSubject()));
+    }
+
+    @Operation(
         summary = "내 성적 삭제",
         description = "[인증 O] 본인이 등록한 성적을 삭제합니다.",
         security = @SecurityRequirement(name = "bearerAuth")

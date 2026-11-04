@@ -95,6 +95,26 @@ class StudentGradeRepositoryIntegrationTest {
     }
 
     @Test
+    void 재수강으로_연결된_성적을_학생별로_한번에_삭제한다() {
+        GradeFixture owner = saveFixture("reset@inha.edu", "CSE101");
+        GradeFixture other = saveFixture("other@inha.edu", "FIN101");
+        StudentGrade original = studentGradeRepository.saveAndFlush(
+            grade(owner.student(), owner.course(), AcademicTerm.FIRST)
+        );
+        studentGradeRepository.saveAndFlush(new StudentGrade(
+            owner.student(), owner.course(), 2025, AcademicTerm.SECOND,
+            GradeCode.A_PLUS, new BigDecimal("3.0"), false, original
+        ));
+        studentGradeRepository.saveAndFlush(grade(other.student(), other.course(), AcademicTerm.FIRST));
+
+        studentGradeRepository.deleteAllForStudent(owner.student());
+        studentGradeRepository.deleteAllForStudent(owner.student());
+
+        assertThat(studentGradeRepository.findAllByStudent(owner.student())).isEmpty();
+        assertThat(studentGradeRepository.findAllByStudent(other.student())).hasSize(1);
+    }
+
+    @Test
     void 성적을_저장하면_외부식별자와_기록시간이_생성된다() {
         GradeFixture fixture = saveFixture("saved@inha.edu", "CSE101");
 
