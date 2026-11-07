@@ -163,7 +163,7 @@ public class StudentService {
             .orElseThrow(DepartmentNotFoundException::new);
     }
 
-    private static StudentProfileResponse toResponse(
+    static StudentProfileResponse toResponse(
         Student student,
         Collection<StudentMajor> majors
     ) {

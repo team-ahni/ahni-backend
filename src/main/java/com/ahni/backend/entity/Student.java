@@ -20,7 +20,7 @@ public class Student {
     @Column(nullable = false, unique = true, updatable = false)
     private UUID entityId = UUID.randomUUID();
 
-    @Column(nullable = false, unique = true, updatable = false)
+    @Column(nullable = false, unique = true)
     private UUID authUserId;
 
     @Column(length = 100)
@@ -67,6 +67,14 @@ public class Student {
         this.admissionYear = admissionYear;
         this.enrollmentStatus = enrollmentStatus;
         this.nickname = nickname;
+    }
+
+    /** 관리자가 본인 확인을 마친 재연결 요청에서만 호출한다. 이메일만으로 재연결하지 않는다. */
+    public void relinkAuthUser(UUID authUserId) {
+        if (authUserId == null) {
+            throw new IllegalArgumentException("새 계정 식별자는 필수입니다.");
+        }
+        this.authUserId = authUserId;
     }
 
     private static void validateAdmissionYear(int admissionYear) {
