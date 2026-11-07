@@ -33,7 +33,7 @@ public class CourseRecommendationController {
     @Operation(
         summary = "수강 추천",
         description = "[인증 O] 본인 전공의 공개 교과과정, 졸업 필수 과목, 이수 성적, 개설 강의로 정규학기 수강 과목을 추천합니다. "
-            + "졸업 필수 미이수, 권장 학기 지남, 이번 학기 권장, 재수강(C+ 이하·F·NP) 순서로 정렬합니다. "
+            + "졸업 필수 미이수, 권장 학기 지남, 이번 학기 권장, 재수강(C+ 이하·F·NP, 이미 재수강한 과목은 F·NP일 때만) 순서로 정렬합니다. "
             + "추천은 안내이며 수강 신청 자격을 보장하지 않습니다."
     )
     @ApiResponse(responseCode = "200", description = "추천 조회 성공",

@@ -103,6 +103,36 @@ class CourseRecommendationCalculatorTest {
     }
 
     @Test
+    void 이미_재수강한_과목은_F일_때만_다시_재수강으로_추천한다() {
+        Course retakenLow = course("ITC2101");
+        Course retakenFailed = course("ITC2102");
+        StudentGrade lowOriginal = grade(retakenLow, 2024, AcademicTerm.FIRST, GradeCode.D_ZERO);
+        StudentGrade failedOriginal = grade(retakenFailed, 2024, AcademicTerm.FIRST, GradeCode.D_ZERO);
+        List<StudentGrade> grades = List.of(
+            lowOriginal,
+            new StudentGrade(student, retakenLow, 2025, AcademicTerm.FIRST, GradeCode.C_ZERO,
+                new BigDecimal("3.0"), false, lowOriginal),
+            failedOriginal,
+            new StudentGrade(student, retakenFailed, 2025, AcademicTerm.FIRST, GradeCode.F,
+                new BigDecimal("3.0"), false, failedOriginal)
+        );
+
+        var result = CourseRecommendationCalculator.recommend(
+            List.of(
+                link(retakenLow, CurriculumDivision.MAJOR_ELECTIVE, 1, RecommendedTerm.FIRST),
+                link(retakenFailed, CurriculumDivision.MAJOR_ELECTIVE, 1, RecommendedTerm.FIRST)
+            ),
+            Set.of(),
+            GradeSummaryCalculator.effectiveAttempts(grades),
+            5,
+            null
+        );
+
+        assertThat(result).extracting(r -> r.course().code()).containsExactly("ITC2102");
+        assertThat(result.getFirst().reasons()).containsExactly(OVERDUE, RETAKE);
+    }
+
+    @Test
     void 개설_정보가_있으면_개설된_과목만_분반과_함께_추천한다() {
         Course offered = course("ITC3001");
         Course notOffered = course("ITC3002");

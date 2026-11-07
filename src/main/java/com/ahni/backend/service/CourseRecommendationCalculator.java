@@ -22,7 +22,8 @@ import java.util.Set;
 import java.util.UUID;
 
 final class CourseRecommendationCalculator {
-    // ponytail: 인하대 재수강 허용 기준(C+ 이하)을 상수로 둔다. 학칙이 바뀌거나 다른 학교를 지원하면 설정으로 옮긴다.
+    // ponytail: 인하대 재수강에 관한 규정(2023-06-16 개정) 제3조 ①의 C+ 이하를 상수로 둔다. NP는 미이수라 포함한다.
+    // 규정이 바뀌거나 다른 학교를 지원하면 설정으로 옮긴다. 학기당 8학점·졸업까지 24학점 한도는 안내만 하고 거르지 않는다.
     private static final Set<GradeCode> RETAKE_GRADES = EnumSet.of(
         GradeCode.C_PLUS, GradeCode.C_ZERO, GradeCode.D_PLUS, GradeCode.D_ZERO, GradeCode.F, GradeCode.NP);
     private static final Set<CurriculumDivision> RECOMMENDED_DIVISIONS = EnumSet.of(
@@ -98,7 +99,10 @@ final class CourseRecommendationCalculator {
             if (required && (overdue || now || !hasPosition)) reasons.add(CourseRecommendationReason.GRADUATION_REQUIRED);
             if (overdue && !completed) reasons.add(CourseRecommendationReason.OVERDUE);
             if (now && !completed) reasons.add(CourseRecommendationReason.RECOMMENDED_NOW);
-            if (!attempts.isEmpty()) reasons.add(CourseRecommendationReason.RETAKE);
+            // 같은 과목 재수강은 1회뿐이고, 재수강해서 F(미이수)를 받았을 때만 다시 할 수 있다(재수강에 관한 규정 제3조 ①).
+            if (!attempts.isEmpty() && (attempts.getFirst().getReplacedGrade() == null || !completed)) {
+                reasons.add(CourseRecommendationReason.RETAKE);
+            }
         }
         return new RecommendedCourseResponse(
             courseResponse(course),
