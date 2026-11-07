@@ -4,6 +4,8 @@
 
 학기별 수강 과목 추천 규칙은 [수강 추천 API](course-recommendation.md)를 참고하세요.
 
+다시 만들어진 Supabase 계정을 기존 학생 프로필에 연결하는 절차는 [학생 계정 재연결 API](student-relink.md)를 참고하세요.
+
 The backend OpenAPI document is the single API contract for the mobile and administrator clients. Clients consume a pinned contract version and must not access Supabase PostgreSQL directly.
 
 The read-only [grade simulation API](grade-simulation.md) compares current and projected GPA without persisting expected grades.

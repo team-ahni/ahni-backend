@@ -85,6 +85,18 @@ public class GlobalExceptionHandler {
         return new ApiErrorResponse("STUDENT_EMAIL_ALREADY_REGISTERED", exception.getMessage());
     }
 
+    @ExceptionHandler(StudentRelinkRequestNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleStudentRelinkRequestNotFound(StudentRelinkRequestNotFoundException exception) {
+        return new ApiErrorResponse("STUDENT_RELINK_REQUEST_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(StudentRelinkConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiErrorResponse handleStudentRelinkConflict(StudentRelinkConflictException exception) {
+        return new ApiErrorResponse("STUDENT_RELINK_CONFLICT", exception.getMessage());
+    }
+
     @ExceptionHandler(StudentNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiErrorResponse handleStudentNotFound(StudentNotFoundException exception) {

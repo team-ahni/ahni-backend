@@ -10,7 +10,7 @@
 - Provision administrators out of band by linking an existing Supabase Auth user to `admin`; do not expose a public administrator-registration endpoint.
 - Restrict signup through exact entries in `allowed_signup_email_domain`; do not allow a domain solely because it ends in `.edu` or `.ac.kr`.
 - Treat email confirmation as proof of mailbox control, not proof of current enrollment or legal identity.
-- Do not relink a student profile to a new Supabase user ID using email alone.
+- Do not relink a student profile to a new Supabase user ID using email alone. A student requests relinking from the new account, and an active administrator approves it only after verifying identity out of band; the request row records the previous auth user ID, approving administrator, and time ([student relink API](../api/student-relink.md)).
 - Validate file type, size, and content before OCR or storage.
 - Inquiry attachments live in the private Supabase Storage bucket `inquiry-attachments` without `storage.objects` client policies. Only the backend reads or writes it with `AHNI_SUPABASE_SERVICE_ROLE_KEY`; never return public or signed URLs, and always download as `attachment` with the server-validated content type.
 - `inquiry` and `inquiry_attachment` use RLS without direct-client allow policies, like `curriculum`.

@@ -47,6 +47,9 @@ class StudentControllerTest {
     private StudentService studentService;
 
     @MockitoBean
+    private com.ahni.backend.service.StudentRelinkService relinkService;
+
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
     @Test

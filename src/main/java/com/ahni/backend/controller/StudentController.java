@@ -3,6 +3,8 @@ package com.ahni.backend.controller;
 import com.ahni.backend.dto.StudentProfileRegistrationRequest;
 import com.ahni.backend.dto.StudentProfileResponse;
 import com.ahni.backend.dto.StudentMajorUpdateRequest;
+import com.ahni.backend.dto.StudentRelinkRequestResponse;
+import com.ahni.backend.service.StudentRelinkService;
 import com.ahni.backend.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,9 +31,65 @@ import java.util.UUID;
 @RequestMapping("/api/v1/students")
 public class StudentController {
     private final StudentService studentService;
+    private final StudentRelinkService relinkService;
 
-    public StudentController(StudentService studentService) {
+    public StudentController(StudentService studentService, StudentRelinkService relinkService) {
         this.studentService = studentService;
+        this.relinkService = relinkService;
+    }
+
+    @Operation(
+        summary = "기존 학생 프로필 재연결 요청",
+        description = "[인증 O] 같은 이메일의 Supabase 계정이 다시 만들어져 프로필 등록이 "
+            + "STUDENT_EMAIL_ALREADY_REGISTERED로 막힌 학생이 기존 프로필을 이 계정에 연결해 달라고 요청합니다. "
+            + "새 계정 식별자와 이메일은 JWT에서 읽습니다. 관리자가 본인임을 확인하고 승인해야 연결되며, "
+            + "같은 계정의 대기 중인 요청이 있으면 새로 만들지 않고 그 요청을 돌려줍니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "202",
+            description = "재연결 요청 접수(또는 기존 대기 요청)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = StudentRelinkRequestResponse.class),
+                examples = @ExampleObject(value = """
+                    {
+                      "entityId": "00000000-0000-0000-0000-000000000030",
+                      "status": "PENDING",
+                      "createdAt": "2026-11-07T01:00:00Z"
+                    }
+                    """)
+            )
+        ),
+        @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+        @ApiResponse(
+            responseCode = "404",
+            description = "이 이메일로 등록된 기존 학생 프로필이 없음",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = com.ahni.backend.dto.ApiErrorResponse.class),
+                examples = @ExampleObject(value = """
+                    {"code":"STUDENT_NOT_FOUND","message":"학생 프로필을 찾을 수 없습니다."}
+                    """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "이 계정에 이미 학생 프로필이 있음",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = com.ahni.backend.dto.ApiErrorResponse.class),
+                examples = @ExampleObject(value = """
+                    {"code":"STUDENT_ALREADY_REGISTERED","message":"이미 가입된 학생입니다."}
+                    """)
+            )
+        )
+    })
+    @PostMapping("/me/relink-requests")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public StudentRelinkRequestResponse requestRelink(@AuthenticationPrincipal Jwt jwt) {
+        return relinkService.request(UUID.fromString(jwt.getSubject()), jwt.getClaimAsString("email"));
     }
 
     @Operation(

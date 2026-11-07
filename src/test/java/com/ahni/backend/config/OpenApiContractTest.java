@@ -274,6 +274,30 @@ class OpenApiContractTest {
 	}
 
 	@Test
+	void studentRelinkEndpointsAreDocumented() throws Exception {
+		String actual = mockMvc.perform(get("/v3/api-docs"))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		var document = objectMapper.readTree(actual);
+		var request = document.at("/paths/~1api~1v1~1students~1me~1relink-requests/post");
+		var approve = document.at("/paths/~1api~1v1~1admin~1student-relink-requests~1{requestEntityId}~1approve/post");
+
+		assertTrue(request.at("/security/0/bearerAuth").isArray());
+		assertEquals(
+			"#/components/schemas/StudentRelinkRequestResponse",
+			request.at("/responses/202/content/application~1json/schema/$ref").asText()
+		);
+		assertTrue(request.at("/responses/404").isObject());
+		assertTrue(request.at("/responses/409").isObject());
+		assertTrue(document.at("/paths/~1api~1v1~1admin~1student-relink-requests/get/responses/403").isObject());
+		assertTrue(approve.at("/responses/404").isObject());
+		assertTrue(approve.at("/responses/409").isObject());
+		assertTrue(document.at("/paths/~1api~1v1~1admin~1student-relink-requests~1{requestEntityId}~1reject/post").isObject());
+	}
+
+	@Test
 	void adminIdentityEndpointIsDocumentedForAuthenticatedAdministrators() throws Exception {
 		String actual = mockMvc.perform(get("/v3/api-docs"))
 			.andExpect(status().isOk())

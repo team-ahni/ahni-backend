@@ -6,6 +6,7 @@ AHNI connects student academic records to decisions about the next semester.
 - Graduation: entry-year and department-specific required courses and credit thresholds.
 - Scholarship: GPA, credit, and warning criteria.
 - Timetable: lectures, conflict detection, custom start times, alarms.
+- Identity: a student profile belongs to one Supabase user ID. A recreated account reclaims its profile only through an administrator-approved relink request, never by email alone ([student relink API](../api/student-relink.md)).
 
 시간표 기본 기능은 기존 과목에 교수·연도·학기·분반별 개설 강의와 요일별
 수업 시간을 연결합니다. 학생별 학기 시간표는 강의 등록 행의 집합이며,
