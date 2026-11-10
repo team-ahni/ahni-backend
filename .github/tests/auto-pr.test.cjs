@@ -194,7 +194,7 @@ test('an invalid token fails before any PR operation', async () => {
   )
 })
 
-test('creation and Copilot review receive the selected personal token', async () => {
+test('token validation and PR creation receive the selected personal token', async () => {
   const secrets = { GH_PAT_TEAM_MEMBER: 'worker-token', GH_PAT: 'owner-token' }
   const { outputs } = await execute(
     step('id: actor-token'),
@@ -204,7 +204,6 @@ test('creation and Copilot review receive the selected personal token', async ()
   for (const [marker, field] of [
     ['id: validate-token', 'ACTOR_PAT'],
     ['id: create-pr', 'github-token'],
-    ['- name: Request Copilot review', 'GH_TOKEN'],
   ]) {
     const line = step(marker).find((value) =>
       value.trim().startsWith(`${field}:`),
@@ -218,4 +217,8 @@ test('creation and Copilot review receive the selected personal token', async ()
     const selectedKey = reference[1] ?? outputs['secret-name']
     assert.equal(secrets[selectedKey], 'worker-token')
   }
+})
+
+test('does not request a Copilot review', () => {
+  assert.doesNotMatch(workflow, /copilot/i)
 })

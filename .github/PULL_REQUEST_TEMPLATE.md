@@ -13,7 +13,6 @@
 ## 검증
 
 - [ ] `./scripts/verify`
-- [ ] Copilot 리뷰 확인
 - [ ] 사람 리뷰 확인
 
 ## API 완료 확인

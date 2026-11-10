@@ -12,4 +12,4 @@
 - `decisions/`: durable technical decisions
 - `exec-plans/`: active plans and technical debt
 - [개발 Git workflow](development/git-workflow.md): 브랜치, 커밋, 검증, PR 규칙
-- [GitHub 자동화](development/github-automation.md): 자동 PR, CI, Copilot 리뷰 설정
+- [GitHub 자동화](development/github-automation.md): 자동 PR, CI 설정
