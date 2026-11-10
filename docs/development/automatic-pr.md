@@ -64,10 +64,9 @@ PAT(Personal Access Token)는 GitHub API가 본인 계정으로 작업하도록 
 
 1. 자동 PR 설정이 반영된 코드에서 본인 작업용 `feat/`, `fix/`, `docs/`, `refactor/`, `chore/` 브랜치를 사용합니다.
 2. 본인 GitHub 계정으로 변경을 push합니다.
-3. 저장소 **Actions → Create PR and request Copilot review**에서 실행 결과를 확인합니다.
-4. **Pull requests**에서 새 PR 작성자가 본인인지, Copilot 리뷰 요청이 있는지 확인합니다.
+3. 저장소 **Actions → Create or update PR**에서 실행 결과를 확인합니다.
+4. **Pull requests**에서 새 PR 작성자가 본인인지 확인합니다.
 5. Secret 등록 전에 실패한 실행은 등록 후 **Re-run failed jobs**로 다시 실행합니다. 이때 최초 push한 계정의 Secret을 등록합니다.
 6. 토큰 만료 전 새 PAT를 발급하고 해당 Repository secret 값을 갱신합니다.
 
-Copilot 리뷰 단계가 실패하면 본인 계정의 코드 리뷰 사용 권한과 저장소 리뷰 설정을 확인합니다.
 재실행 방법: [GitHub Actions 재실행 안내](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)

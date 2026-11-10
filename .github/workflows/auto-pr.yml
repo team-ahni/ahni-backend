@@ -1,4 +1,4 @@
-name: Create PR and request Copilot review
+name: Create or update PR
 
 on:
   push:
@@ -69,7 +69,7 @@ jobs:
               return `- [\`${sha.slice(0, 7)}\`](${html_url}) ${title}`;
             });
             const commitSection = `<!-- auto-generated-commits -->\n## 커밋 내역\n\n${commitLines.join('\n') || '- 변경 커밋 없음'}\n\n<!-- end-auto-generated-commits -->`;
-            const defaultBody = `## 변경 요약\n\n자동 생성된 PR입니다. 변경 목적과 영향 범위를 보완해 주세요.\n\n${commitSection}\n\n## 검증\n\n- [ ] \`./scripts/verify\`\n- [ ] Copilot 리뷰 확인\n- [ ] 사람 리뷰 확인`;
+            const defaultBody = `## 변경 요약\n\n자동 생성된 PR입니다. 변경 목적과 영향 범위를 보완해 주세요.\n\n${commitSection}\n\n## 검증\n\n- [ ] \`./scripts/verify\`\n- [ ] 사람 리뷰 확인`;
 
             const pull = openPulls[0] ?? (await github.rest.pulls.create({
               owner: context.repo.owner,
@@ -94,8 +94,3 @@ jobs:
             }
 
             core.setOutput('pull-number', pull.number);
-
-      - name: Request Copilot review
-        env:
-          GH_TOKEN: ${{ secrets[steps.actor-token.outputs.secret-name] }}
-        run: gh pr edit "${{ steps.create-pr.outputs.pull-number }}" --repo "$GITHUB_REPOSITORY" --add-reviewer "@copilot"
