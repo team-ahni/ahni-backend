@@ -4,7 +4,7 @@
 - Authenticate every student and administrator endpoint.
 - Configure `AHNI_CORS_ALLOWED_ORIGINS` with exact trusted web origins; never use a wildcard. Local `dev` defaults to the two localhost Vite origins.
 - Authorize by role and resource ownership, not by client-provided identifiers alone.
-- `curriculum` and `curriculum_course` use RLS without direct-client allow policies. `anon` and `authenticated` must not directly read or mutate them; clients use Spring APIs. The configured JDBC role requires verified server access (currently `postgres` with BYPASSRLS). Recheck access before changing that role; do not grant BYPASSRLS to client roles.
+- Every `public` table uses RLS without direct-client allow policies, and `anon`/`authenticated` hold no table or sequence privileges (V29, which also revokes the Supabase default privileges for future tables). The Supabase publishable key ships inside the mobile app, so anything those roles can reach is public. Clients use Spring APIs only. The configured JDBC role requires verified server access (currently `postgres` with BYPASSRLS). Recheck access before changing that role; do not grant BYPASSRLS to client roles. A new table needs no extra SQL, but `DirectClientAccessMigrationIntegrationTest` must keep passing.
 - The administrator client checks the authenticated identity through `GET /api/v1/admin/me` before rendering protected routes; every protected endpoint still enforces administrator authorization independently.
 - Authorize graduation-policy mutations only when the JWT subject matches an active `admin.auth_user_id`; return `ADMIN_ACCESS_DENIED` otherwise.
 - Provision administrators out of band by linking an existing Supabase Auth user to `admin`; do not expose a public administrator-registration endpoint.
@@ -13,6 +13,5 @@
 - Do not relink a student profile to a new Supabase user ID using email alone. A student requests relinking from the new account, and an active administrator approves it only after verifying identity out of band; the request row records the previous auth user ID, approving administrator, and time ([student relink API](../api/student-relink.md)).
 - Validate file type, size, and content before OCR or storage.
 - Inquiry attachments live in the private Supabase Storage bucket `inquiry-attachments` without `storage.objects` client policies. Only the backend reads or writes it with `AHNI_SUPABASE_SERVICE_ROLE_KEY`; never return public or signed URLs, and always download as `attachment` with the server-validated content type.
-- `inquiry` and `inquiry_attachment` use RLS without direct-client allow policies, like `curriculum`.
 - Keep secrets in environment variables or a secret manager, never in Git.
 - Treat OCR, map, notification, and other external service responses as untrusted input.
