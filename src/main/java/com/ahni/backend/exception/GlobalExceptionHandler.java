@@ -3,6 +3,7 @@ package com.ahni.backend.exception;
 import com.ahni.backend.dto.ApiErrorResponse;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +17,12 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 @RestControllerAdvice
 @Hidden
 public class GlobalExceptionHandler {
+    @ExceptionHandler(NoticeException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotice(NoticeException exception) {
+        return ResponseEntity.status(exception.status())
+            .body(new ApiErrorResponse(exception.code(), exception.getMessage()));
+    }
+
     @ExceptionHandler(TimetableConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiErrorResponse handleTimetableConflict(TimetableConflictException exception) {
