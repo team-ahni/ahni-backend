@@ -54,3 +54,5 @@ Email confirmation proves control of an allowed address, not current enrollment.
 성적 신규 등록은 선택한 수강연도·학기의 개설 강의에 연결된 과목을 사용합니다. 연도나 학기를 변경할 때도 해당 개설 여부를 확인하며, 기존 학기를 유지한 수정은 개설 자료 삭제와 무관하게 허용합니다. 졸업요건의 교과과정 인정 규칙은 별도로 유지합니다. 개설 강의가 없는 과거 학기의 수동 입력은 지원되지 않습니다.
 
 공지 본문은 기존 `body`(검색·미리보기·구버전 앱용 평문)와 선택적 `body_json`(Tiptap 문서)을 함께 보존합니다. 본문 사진은 `notice_image`에 공지·비공개 Storage 키·형식·크기·삭제 시각을 저장합니다. 실제 파일 경로나 외부 URL은 본문/API에 노출하지 않습니다. [본문 사진 운영](../development/notice-rich-content.md)을 참고하세요.
+
+주전공 HWP 기준 23개 정책은 [입력 기록](../development/primary-graduation-policies.md)에 따릅니다. 25학번부터 전공 65와 전공기초 15를 별도로 저장·계산합니다. 선택·대체 규칙이 자동화되지 않은 입력 정책은 evaluationComplete=false이며 전체 충족을 확정하지 않습니다.

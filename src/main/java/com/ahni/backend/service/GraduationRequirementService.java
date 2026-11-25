@@ -82,7 +82,7 @@ public class GraduationRequirementService {
             requirement.getMinGeneralCredit(),
             requirement.getSourceTitle(),
             requirement.getSourceUrl(),
-            requiredCourses
+            requiredCourses, requirement.getMinFoundationCredit(), requirement.isEvaluationComplete()
         );
     }
 

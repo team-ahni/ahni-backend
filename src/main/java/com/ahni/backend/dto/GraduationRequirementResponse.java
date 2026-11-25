@@ -37,5 +37,14 @@ public record GraduationRequirementResponse(
     )
     String sourceUrl,
     @Schema(description = "활성 필수과목 목록")
-    List<RequiredCourseResponse> requiredCourses
-) { }
+    List<RequiredCourseResponse> requiredCourses,
+    @Schema(description = "전공 65학점과 별도로 이수하는 전공기초 최소학점", example = "15.0") BigDecimal minFoundationCredit,
+    @Schema(description = "선택·대체·경과조치를 포함한 전체 자동 판정이 지원되는지. false면 충족 판정을 확정하지 않습니다.") boolean evaluationComplete
+) {
+    public GraduationRequirementResponse(UUID entityId, Integer admissionYear, String majorType, DepartmentResponse department,
+        BigDecimal minTotalCredit, BigDecimal minDepartmentCredit, BigDecimal minGeneralCredit,
+        String sourceTitle, String sourceUrl, List<RequiredCourseResponse> requiredCourses) {
+        this(entityId, admissionYear, majorType, department, minTotalCredit, minDepartmentCredit, minGeneralCredit,
+            sourceTitle, sourceUrl, requiredCourses, BigDecimal.ZERO, true);
+    }
+}

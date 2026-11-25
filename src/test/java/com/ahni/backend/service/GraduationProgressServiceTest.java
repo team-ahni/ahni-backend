@@ -54,6 +54,27 @@ class GraduationProgressServiceTest {
     private GraduationProgressService graduationProgressService;
 
     @Test
+    void incompleteRuleSupportCannotProduceOverallCompletionEvenWhenCreditsAreZero() {
+        var authUserId = UUID.randomUUID();
+        var department = new Department("금융투자학과");
+        var student = student(authUserId);
+        var major = new StudentMajor(student, department, MajorType.PRIMARY);
+        var policy = new GraduationRequirement(department, student.getAdmissionYear(), MajorType.PRIMARY,
+            BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "확인된 원문", null);
+        policy.markEvaluationIncomplete("{\"pending\":\"core_selection\"}");
+        when(studentRepository.findByAuthUserId(authUserId)).thenReturn(Optional.of(student));
+        when(studentMajorRepository.findAllByStudentAndDeletedAtIsNull(student)).thenReturn(List.of(major));
+        when(gradeRepository.findAllByStudent(student)).thenReturn(List.of());
+        when(graduationRequirementRepository.findByDepartmentAndAdmissionYearAndMajorType(department,
+            student.getAdmissionYear(), MajorType.PRIMARY)).thenReturn(Optional.of(policy));
+        when(requiredCourseRepository.findAllActiveByGraduationRequirement(policy)).thenReturn(List.of());
+        var progress = graduationProgressService.getProgress(authUserId).getFirst();
+        assertThat(progress.credits().total().met()).isTrue();
+        assertThat(progress.evaluationComplete()).isFalse();
+        assertThat(progress.requirementsMet()).isFalse();
+    }
+
+    @Test
     void 학생의_활성_전공별_학점_충족도를_계산한다() {
         UUID authUserId = UUID.randomUUID();
         Department department = new Department("소프트웨어융합공학과");

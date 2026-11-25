@@ -35,5 +35,14 @@ public record GraduationRequirementUpdateRequest(
     )
     String sourceUrl,
     @NotNull
-    List<@Valid RequiredCourseAssignmentRequest> requiredCourses
-) { }
+    List<@Valid RequiredCourseAssignmentRequest> requiredCourses,
+    @DecimalMin("0.0") @Digits(integer = 3, fraction = 1)
+    @Schema(description = "전공 학점과 별도로 요구되는 전공기초 학점. 등록 시 생략하면 0, 수정 시 생략하면 기존 값 유지", example = "15.0", nullable = true)
+    BigDecimal minFoundationCredit
+) {
+
+    public GraduationRequirementUpdateRequest(BigDecimal minTotalCredit, BigDecimal minDepartmentCredit,
+        BigDecimal minGeneralCredit, String sourceTitle, String sourceUrl, List<RequiredCourseAssignmentRequest> requiredCourses) {
+        this(minTotalCredit, minDepartmentCredit, minGeneralCredit, sourceTitle, sourceUrl, requiredCourses, null);
+    }
+}

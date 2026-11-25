@@ -256,6 +256,8 @@ class GraduationRequirementManagementServiceTest {
         allowAdmin();
         Department department = new Department("소프트웨어융합공학과");
         GraduationRequirement requirement = requirement(department);
+        requirement.setMinFoundationCredit(new BigDecimal("15"));
+        requirement.markEvaluationIncomplete("{\"pending\":\"conditional_rules\"}");
         Course previousCourse = course(
             department,
             "CSE101",
@@ -299,6 +301,8 @@ class GraduationRequirementManagementServiceTest {
         );
 
         assertThat(response.minTotalCredit()).isEqualByComparingTo("135.0");
+        assertThat(response.minFoundationCredit()).isEqualByComparingTo("15");
+        assertThat(response.evaluationComplete()).isFalse();
         assertThat(response.sourceTitle()).isEqualTo("2024학년도 개정 졸업요건");
         assertThat(response.sourceUrl()).isNull();
         assertThat(previous.isActive()).isFalse();

@@ -147,6 +147,28 @@ class GraduationProgressCalculatorTest {
         assertThat(result.department().completed()).isEqualByComparingTo("0.0");
     }
 
+    @Test
+    void foundationCreditIsSeparateFromMajorAndCountedOnceInTotal() {
+        var requirement = requirement("126", "65", "25");
+        requirement.setMinFoundationCredit(new BigDecimal("15"));
+        var foundation = majorCourse(department, "FND101");
+        var major = majorCourse(department, "MAJ101");
+        var foundationLink = link(department, 2025, foundation, true);
+        var curriculum = new Curriculum(department, 2025, "공식 자료", null);
+        curriculum.setPublished(true);
+        var majorLink = new CurriculumCourse(curriculum, major, CurriculumDivision.MAJOR_REQUIRED,
+            null, null, null, null, null, null);
+        var result = GraduationProgressCalculator.calculate(requirement,
+            List.of(grade(foundation, GradeCode.P, "3"), grade(major, GradeCode.A_ZERO, "3")),
+            List.of(foundationLink, majorLink));
+        assertThat(result.total().completed()).isEqualByComparingTo("6");
+        assertThat(result.department().completed()).isEqualByComparingTo("3");
+        assertThat(result.foundation().completed()).isEqualByComparingTo("3");
+        assertThat(result.foundation().remaining()).isEqualByComparingTo("12");
+        assertThat(result.foundation().met()).isFalse();
+        assertThat(result.general().completed()).isEqualByComparingTo("0");
+    }
+
     private CurriculumCourse link(Department recognizedDepartment, int year, Course course, boolean published) {
         Curriculum curriculum = new Curriculum(recognizedDepartment, year, "공식 교과과정", null);
         curriculum.setPublished(published);

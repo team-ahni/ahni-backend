@@ -13,6 +13,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.Getter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -54,6 +57,28 @@ public class GraduationRequirement {
 
     @Column(precision = 5, scale = 1, nullable = false)
     private BigDecimal minGeneralCredit;
+
+    @Column(precision = 5, scale = 1, nullable = false)
+    @ColumnDefault("0")
+    private BigDecimal minFoundationCredit = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @ColumnDefault("true")
+    private boolean evaluationComplete = true;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String policyDetails;
+
+    public void setMinFoundationCredit(BigDecimal value) {
+        this.minFoundationCredit = validateCredit(value);
+    }
+
+    public void markEvaluationIncomplete(String policyDetails) {
+        this.evaluationComplete = false;
+        this.policyDetails = policyDetails;
+    }
+
 
     @Column(length = MAX_SOURCE_TITLE_LENGTH, nullable = false)
     private String sourceTitle;
