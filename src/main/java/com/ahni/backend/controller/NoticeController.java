@@ -3,6 +3,17 @@ package com.ahni.backend.controller;
 import com.ahni.backend.dto.ApiErrorResponse;
 import com.ahni.backend.dto.NoticeResponse;
 import com.ahni.backend.service.NoticeService;
+import com.ahni.backend.service.NoticeImageService;
+import com.ahni.backend.dto.InquiryAttachmentFile;
+import com.ahni.backend.exception.NoticeException;
+import tools.jackson.databind.JsonNode;
+import java.io.IOException;
+import java.util.ArrayList;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -70,7 +81,7 @@ public class NoticeController {
     @PostMapping(value = "/api/v1/admin/notices", consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE)
     public NoticeResponse createNotice(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody NoticeCreateRequest request) {
-        return notices.create(UUID.fromString(jwt.getSubject()), request.title(), request.body());
+        return notices.create(UUID.fromString(jwt.getSubject()), request.title(), request.body(), request.bodyJson(), List.of());
     }
 
     @Operation(summary = "공지 수정 및 공개 설정")
@@ -95,7 +106,7 @@ public class NoticeController {
     public NoticeResponse updateNotice(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID noticeId,
         @Valid @RequestBody NoticeUpdateRequest request) {
         return notices.update(UUID.fromString(jwt.getSubject()), noticeId, request.title(), request.body(),
-            request.published(), request.version());
+            request.published(), request.version(), request.bodyJson(), List.of());
     }
 
     @Operation(summary = "공지 삭제", description = "삭제 시간을 기록하고 공지를 조회에서 숨깁니다.")
@@ -112,15 +123,105 @@ public class NoticeController {
         notices.delete(UUID.fromString(jwt.getSubject()), noticeId, version);
     }
 
+    @Operation(summary = "본문 사진과 공지 초안 저장", description = "notice JSON과 images 파일, 같은 순서의 imageIds를 보냅니다. JPG/PNG 최대 10장, 업로드 합계 5MiB.")
+    @ApiResponse(responseCode = "201", description = "공지 저장 성공")
+    @ApiResponse(responseCode = "400", description = "INVALID_NOTICE_CONTENT 또는 INVALID_REQUEST")
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
+    @ApiResponse(responseCode = "403", description = "ADMIN_ACCESS_DENIED")
+    @ApiResponse(responseCode = "413", description = "요청 크기 초과")
+    @ApiResponse(responseCode = "503", description = "NOTICE_IMAGE_STORAGE_UNAVAILABLE")
+    @PostMapping(value = "/api/v1/admin/notices", consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public NoticeResponse createRichNotice(@AuthenticationPrincipal Jwt jwt,
+        @RequestPart("notice") @Valid NoticeCreateRequest request,
+        @RequestPart("imageIds") List<UUID> imageIds,
+        @RequestPart("images") List<MultipartFile> files) {
+        return notices.create(UUID.fromString(jwt.getSubject()), request.title(), request.body(),
+            request.bodyJson(), uploads(imageIds, files));
+    }
+
+    @Operation(summary = "본문 사진과 공지 수정", description = "본문 imageId는 기존 공지의 사진 또는 같은 요청의 새 사진만 허용합니다.")
+    @ApiResponse(responseCode = "200", description = "공지 수정 성공")
+    @ApiResponse(responseCode = "400", description = "INVALID_NOTICE_CONTENT 또는 INVALID_REQUEST")
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
+    @ApiResponse(responseCode = "403", description = "ADMIN_ACCESS_DENIED")
+    @ApiResponse(responseCode = "404", description = "NOTICE_NOT_FOUND")
+    @ApiResponse(responseCode = "409", description = "NOTICE_VERSION_CONFLICT")
+    @ApiResponse(responseCode = "413", description = "요청 크기 초과")
+    @ApiResponse(responseCode = "503", description = "NOTICE_IMAGE_STORAGE_UNAVAILABLE")
+    @PutMapping(value = "/api/v1/admin/notices/{noticeId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public NoticeResponse updateRichNotice(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID noticeId,
+        @RequestPart("notice") @Valid NoticeUpdateRequest request,
+        @RequestPart("imageIds") List<UUID> imageIds,
+        @RequestPart("images") List<MultipartFile> files) {
+        return notices.update(UUID.fromString(jwt.getSubject()), noticeId, request.title(), request.body(),
+            request.published(), request.version(), request.bodyJson(), uploads(imageIds, files));
+    }
+
+    @Operation(summary = "관리자 공지 본문 사진 조회")
+    @ApiResponse(responseCode = "200", description = "JPG/PNG 사진", content = {
+        @Content(mediaType = "image/jpeg", schema = @Schema(type = "string", format = "binary")),
+        @Content(mediaType = "image/png", schema = @Schema(type = "string", format = "binary")) })
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
+    @ApiResponse(responseCode = "403", description = "ADMIN_ACCESS_DENIED")
+    @ApiResponse(responseCode = "404", description = "NOTICE_NOT_FOUND 또는 NOTICE_IMAGE_NOT_FOUND")
+    @ApiResponse(responseCode = "503", description = "NOTICE_IMAGE_STORAGE_UNAVAILABLE")
+    @GetMapping("/api/v1/admin/notices/{noticeId}/images/{imageId}")
+    public ResponseEntity<byte[]> adminImage(@AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID noticeId, @PathVariable UUID imageId) {
+        return imageResponse(notices.downloadAdminImage(UUID.fromString(jwt.getSubject()), noticeId, imageId));
+    }
+
+    @Operation(summary = "학생 공개 공지 본문 사진 조회")
+    @ApiResponse(responseCode = "200", description = "JPG/PNG 사진", content = {
+        @Content(mediaType = "image/jpeg", schema = @Schema(type = "string", format = "binary")),
+        @Content(mediaType = "image/png", schema = @Schema(type = "string", format = "binary")) })
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
+    @ApiResponse(responseCode = "404", description = "STUDENT_NOT_FOUND, NOTICE_NOT_FOUND 또는 NOTICE_IMAGE_NOT_FOUND")
+    @ApiResponse(responseCode = "503", description = "NOTICE_IMAGE_STORAGE_UNAVAILABLE")
+    @GetMapping("/api/v1/notices/{noticeId}/images/{imageId}")
+    public ResponseEntity<byte[]> publishedImage(@AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID noticeId, @PathVariable UUID imageId) {
+        return imageResponse(notices.downloadPublishedImage(UUID.fromString(jwt.getSubject()), noticeId, imageId));
+    }
+
+    private static ResponseEntity<byte[]> imageResponse(InquiryAttachmentFile file) {
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(file.contentType()))
+            .cacheControl(CacheControl.noStore()).header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+            .header("X-Content-Type-Options", "nosniff").body(file.content());
+    }
+
+    private static List<NoticeImageService.Upload> uploads(List<UUID> ids, List<MultipartFile> files) {
+        if (ids.size() != files.size() || files.size() > 10 ||
+            files.stream().mapToLong(MultipartFile::getSize).sum() > 5L * 1024 * 1024) {
+            throw NoticeException.invalidContent();
+        }
+        var uploads = new ArrayList<NoticeImageService.Upload>();
+        try {
+            for (int index = 0; index < files.size(); index++) {
+                var file = files.get(index);
+                uploads.add(new NoticeImageService.Upload(ids.get(index), file.getOriginalFilename(),
+                    file.getContentType(), file.getBytes()));
+            }
+        } catch (IOException exception) {
+            throw NoticeException.invalidContent();
+        }
+        return uploads;
+    }
+
     public record NoticeCreateRequest(
         @NotBlank @Size(max = 150) @Schema(example = "수강신청 안내") String title,
-        @NotBlank @Size(max = 10000) @Schema(example = "수강신청 일정을 확인해 주세요.") String body
+        @NotNull @Size(max = 10000) @Schema(example = "수강신청 일정을 확인해 주세요.") String body,
+        @Schema(types = {"object", "null"}) JsonNode bodyJson
     ) {}
 
     public record NoticeUpdateRequest(
         @NotBlank @Size(max = 150) @Schema(example = "수강신청 안내") String title,
-        @NotBlank @Size(max = 10000) @Schema(example = "수강신청 일정을 확인해 주세요.") String body,
+        @NotNull @Size(max = 10000) @Schema(example = "수강신청 일정을 확인해 주세요.") String body,
         @NotNull Boolean published,
-        @NotNull @PositiveOrZero Long version
+        @NotNull @PositiveOrZero Long version,
+        @Schema(types = {"object", "null"}) JsonNode bodyJson
     ) {}
 }
