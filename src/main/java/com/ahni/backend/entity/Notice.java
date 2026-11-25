@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -19,6 +21,9 @@ public class Notice {
     private String title;
     @Column(nullable = false, length = 10000)
     private String body;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String bodyJson;
     @Column(nullable = false)
     private Instant updatedAt;
     private Instant publishedAt;
@@ -37,6 +42,10 @@ public class Notice {
         update(title, body, false);
         this.createdAt = updatedAt;
         this.createdByName = createdByName;
+    }
+
+    public void setBodyJson(String bodyJson) {
+        this.bodyJson = bodyJson;
     }
 
     public void softDelete() {

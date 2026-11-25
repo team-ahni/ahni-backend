@@ -52,3 +52,5 @@ Supabase email confirmation is the signup gate. `PENDING` describes a Supabase u
 Email confirmation proves control of an allowed address, not current enrollment. Enrollment status is initially self-reported and may influence academic guidance and notification policy. Do not introduce certificate upload, administrator approval, or external enrollment verification without a new approved decision.
 
 성적 신규 등록은 선택한 수강연도·학기의 개설 강의에 연결된 과목을 사용합니다. 연도나 학기를 변경할 때도 해당 개설 여부를 확인하며, 기존 학기를 유지한 수정은 개설 자료 삭제와 무관하게 허용합니다. 졸업요건의 교과과정 인정 규칙은 별도로 유지합니다. 개설 강의가 없는 과거 학기의 수동 입력은 지원되지 않습니다.
+
+공지 본문은 기존 `body`(검색·미리보기·구버전 앱용 평문)와 선택적 `body_json`(Tiptap 문서)을 함께 보존합니다. 본문 사진은 `notice_image`에 공지·비공개 Storage 키·형식·크기·삭제 시각을 저장합니다. 실제 파일 경로나 외부 URL은 본문/API에 노출하지 않습니다. [본문 사진 운영](../development/notice-rich-content.md)을 참고하세요.
