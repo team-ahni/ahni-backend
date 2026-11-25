@@ -24,5 +24,12 @@ public record GraduationProgressResponse(
     @Schema(description = "학점 충족도")
     GraduationCreditProgressResponse credits,
     @Schema(description = "필수과목별 이수 여부") List<RequiredCourseProgressResponse> requiredCourses,
-    @Schema(description = "학점 및 필수과목 기준 충족 여부. 학교의 최종 졸업 판정이 아님", example = "false") boolean requirementsMet
-) { }
+    @Schema(description = "학점 및 필수과목 기준 충족 여부. 학교의 최종 졸업 판정이 아님", example = "false") boolean requirementsMet,
+    @Schema(description = "선택·대체·경과조치까지 전체 자동 판정 가능한지. false면 requirementsMet도 false입니다.") boolean evaluationComplete
+) {
+    public GraduationProgressResponse(UUID requirementEntityId, Integer admissionYear, String majorType,
+        DepartmentResponse department, GraduationCreditProgressResponse credits,
+        List<RequiredCourseProgressResponse> requiredCourses, boolean requirementsMet) {
+        this(requirementEntityId, admissionYear, majorType, department, credits, requiredCourses, requirementsMet, true);
+    }
+}

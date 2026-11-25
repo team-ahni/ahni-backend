@@ -91,7 +91,8 @@ public class GraduationProgressService {
             requirement.getMajorType().name(),
             new DepartmentResponse(department.getEntityId(), department.getName()),
             credits, requiredCourses,
-            credits.total().met() && credits.department().met() && credits.general().met() && requiredCourses.stream().allMatch(com.ahni.backend.dto.RequiredCourseProgressResponse::completed)
+            requirement.isEvaluationComplete() && credits.total().met() && credits.department().met() && credits.foundation().met() && credits.general().met() && requiredCourses.stream().allMatch(com.ahni.backend.dto.RequiredCourseProgressResponse::completed),
+            requirement.isEvaluationComplete()
         );
     }
 }

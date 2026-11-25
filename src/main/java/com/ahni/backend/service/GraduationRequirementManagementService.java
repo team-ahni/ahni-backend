@@ -125,6 +125,7 @@ public class GraduationRequirementManagementService {
                 request.sourceUrl()
             )
         );
+        if (request.minFoundationCredit() != null) requirement.setMinFoundationCredit(request.minFoundationCredit());
         List<RequiredCourse> requiredCourses = saveAssignments(
             requirement,
             request.requiredCourses(),
@@ -159,6 +160,7 @@ public class GraduationRequirementManagementService {
         previousAssignments.forEach(RequiredCourse::softDelete);
         requiredCourseRepository.saveAllAndFlush(previousAssignments);
 
+        if (request.minFoundationCredit() != null) requirement.setMinFoundationCredit(request.minFoundationCredit());
         List<RequiredCourse> requiredCourses = saveAssignments(
             requirement,
             request.requiredCourses(),
@@ -256,7 +258,8 @@ public class GraduationRequirementManagementService {
             requiredCourses.stream()
                 .sorted(COURSE_CODE_ORDER)
                 .map(GraduationRequirementManagementService::toRequiredCourseResponse)
-                .toList()
+                .toList(),
+            requirement.getMinFoundationCredit(), requirement.isEvaluationComplete()
         );
     }
 
